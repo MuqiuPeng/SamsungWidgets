@@ -1,7 +1,11 @@
-# SamsungWidgets — 三星桌面小工具
+# Toolbox — 三星桌面小工具
 
 Android 主屏小组件集合（Kotlin + Jetpack Glance），在 One UI（三星）桌面上使用。
-一个 App 可以提供多个小工具：每个小工具放在 `widgets/<名字>/` 下，并在 `AndroidManifest.xml` 里注册一个 receiver。
+一个 App 可以提供多个小工具：每个小工具放在 `widgets/<名字>/` 下，在 `AndroidManifest.xml` 里注册一个 receiver，
+并在 `ui/ToolboxApp.kt` 的 `WIDGETS` 里加一项，左侧抽屉就会出现它的设置页。
+
+App 左侧抽屉分两部分：**小工具**（各小工具的设置）和**设置**（语言、更新、关于）。
+每次打开会检查 GitHub Releases 是否有新版本，有则提示，可在 App 内下载并调起安装。
 
 ## 小工具
 
@@ -9,15 +13,17 @@ Android 主屏小组件集合（Kotlin + Jetpack Glance），在 One UI（三星
 | --- | --- | --- |
 | 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
 
-设置页（`ui/SettingsScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔；
-切换语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）。文案在 `res/values`（英文）和 `res/values-zh`（中文）。
+汇率设置页（`ui/ExchangeRateScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔。
+设置页（`ui/AppSettingsScreen.kt`）：语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。
+文案在 `res/values`（英文）和 `res/values-zh`（中文）。
 
 ## 结构
 
 ```
 app/src/main/java/com/guans/widgets/
-├── MainActivity.kt                 设置页入口（一键添加到桌面）
-├── ui/                             设置页界面（Compose + Material 3，跟随壁纸取色）
+├── MainActivity.kt                 应用入口（一键添加到桌面）
+├── ui/                             界面（Compose + Material 3，跟随壁纸取色）：抽屉、各设置页、更新提示
+├── update/UpdateChecker.kt         查询 GitHub 最新 Release、下载并安装 APK
 ├── data/
 │   ├── Currencies.kt               可选货币、本地化名称
 │   ├── Settings.kt                 货币对与刷新间隔

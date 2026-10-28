@@ -23,7 +23,7 @@ if gh release view "$tag" >/dev/null 2>&1; then
 fi
 
 ./gradlew assembleRelease --console=plain -q
-apk="app/build/outputs/apk/release/SamsungWidgets-$tag.apk"
+apk="app/build/outputs/apk/release/Toolbox-$tag.apk"
 cp app/build/outputs/apk/release/app-release.apk "$apk"
 
 git push origin HEAD

@@ -1,10 +1,8 @@
 package com.guans.widgets.ui
 
 import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -36,11 +33,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -56,10 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.os.LocaleListCompat
 import com.guans.widgets.R
 import com.guans.widgets.data.Currencies
 import com.guans.widgets.data.Settings
@@ -70,9 +62,9 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** 汇率小工具的设置：货币对、刷新间隔、添加到桌面。 */
 @Composable
-fun SettingsScreen(onAddToHome: () -> Unit) {
+fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
     val pairs = remember { mutableStateListOf<String>().apply { addAll(Settings.pairs(context)) } }
@@ -97,113 +89,100 @@ fun SettingsScreen(onAddToHome: () -> Unit) {
 
     val rates = cache?.rates?.toMap().orEmpty()
 
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = padding.calculateTopPadding(),
-                bottom = padding.calculateBottomPadding() + 24.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            item {
-                SectionHeader(stringResource(R.string.section_pairs), stringResource(R.string.pairs_hint))
-            }
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    if (pairs.isEmpty()) {
-                        Text(
-                            stringResource(R.string.pairs_empty),
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    pairs.forEachIndexed { index, pair ->
-                        if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                        PairRow(
-                            pair = pair,
-                            rate = rates[pair],
-                            locale = locale,
-                            canMoveUp = index > 0,
-                            canMoveDown = index < pairs.lastIndex,
-                            onReverse = {
-                                val (from, to) = pair.split('/')
-                                val reversed = "$to/$from"
-                                if (reversed !in pairs) {
-                                    pairs[index] = reversed
-                                    savePairs()
-                                }
-                            },
-                            onMoveUp = { pairs.add(index - 1, pairs.removeAt(index)); savePairs() },
-                            onMoveDown = { pairs.add(index + 1, pairs.removeAt(index)); savePairs() },
-                            onDelete = { pairs.removeAt(index); savePairs() },
-                        )
-                    }
-                }
-            }
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FilledTonalButton(onClick = { picking = true }, enabled = pairs.size < Settings.MAX_PAIRS) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.add_pair))
-                    }
-                    Spacer(Modifier.width(12.dp))
+    LazyColumn(contentPadding = screenPadding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item {
+            SectionHeader(stringResource(R.string.section_pairs), stringResource(R.string.pairs_hint))
+        }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                if (pairs.isEmpty()) {
                     Text(
-                        stringResource(R.string.pairs_limit, Settings.MAX_PAIRS),
-                        style = MaterialTheme.typography.bodySmall,
+                        stringResource(R.string.pairs_empty),
+                        modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val current = cache
-                    Text(
-                        text = if (current == null || current.updatedAt == 0L) {
-                            stringResource(R.string.never_updated)
-                        } else {
-                            stringResource(
-                                R.string.last_updated,
-                                DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(current.updatedAt)),
-                                current.source,
-                            )
+                pairs.forEachIndexed { index, pair ->
+                    if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    PairRow(
+                        pair = pair,
+                        rate = rates[pair],
+                        locale = locale,
+                        canMoveUp = index > 0,
+                        canMoveDown = index < pairs.lastIndex,
+                        onReverse = {
+                            val (from, to) = pair.split('/')
+                            val reversed = "$to/$from"
+                            if (reversed !in pairs) {
+                                pairs[index] = reversed
+                                savePairs()
+                            }
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
+                        onMoveUp = { pairs.add(index - 1, pairs.removeAt(index)); savePairs() },
+                        onMoveDown = { pairs.add(index + 1, pairs.removeAt(index)); savePairs() },
+                        onDelete = { pairs.removeAt(index); savePairs() },
                     )
-                    TextButton(onClick = { RateScheduler.refreshNow(context) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.refresh_now))
-                    }
                 }
             }
-
-            item { SectionHeader(stringResource(R.string.section_refresh), stringResource(R.string.refresh_note)) }
-            item {
-                RefreshOptions(selected = refreshMinutes) { minutes ->
-                    refreshMinutes = minutes
-                    Settings.setRefreshMinutes(context, minutes)
-                    RateScheduler.reschedule(context)
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalButton(onClick = { picking = true }, enabled = pairs.size < Settings.MAX_PAIRS) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.add_pair))
                 }
-            }
-
-            item { SectionHeader(stringResource(R.string.section_language)) }
-            item { LanguageOptions() }
-
-            item {
-                SectionHeader(
-                    stringResource(R.string.section_widget),
-                    stringResource(R.string.add_to_home_hint, stringResource(R.string.app_name)),
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    stringResource(R.string.pairs_limit, Settings.MAX_PAIRS),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            item {
-                OutlinedButton(onClick = onAddToHome) {
-                    Text(stringResource(R.string.add_to_home))
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val current = cache
+                Text(
+                    text = if (current == null || current.updatedAt == 0L) {
+                        stringResource(R.string.never_updated)
+                    } else {
+                        stringResource(
+                            R.string.last_updated,
+                            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(current.updatedAt)),
+                            current.source,
+                        )
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { RateScheduler.refreshNow(context) }) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.refresh_now))
                 }
+            }
+        }
+
+        item { SectionHeader(stringResource(R.string.section_refresh), stringResource(R.string.refresh_note)) }
+        item {
+            RefreshOptions(selected = refreshMinutes) { minutes ->
+                refreshMinutes = minutes
+                Settings.setRefreshMinutes(context, minutes)
+                RateScheduler.reschedule(context)
+            }
+        }
+
+        item {
+            SectionHeader(
+                stringResource(R.string.section_widget),
+                stringResource(R.string.add_to_home_hint, stringResource(R.string.widget_exchange_rate_name)),
+            )
+        }
+        item {
+            OutlinedButton(onClick = onAddToHome) {
+                Text(stringResource(R.string.add_to_home))
             }
         }
     }
@@ -221,20 +200,6 @@ fun SettingsScreen(onAddToHome: () -> Unit) {
                 }
             },
         )
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, subtitle: String? = null) {
-    Column(Modifier.padding(top = 16.dp, bottom = 4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        if (subtitle != null) {
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -305,42 +270,6 @@ private fun RefreshOptions(selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-/** 应用内语言：空 tag 表示跟随系统。切换后 AppCompat 会自动重建界面。 */
-@Composable
-private fun LanguageOptions() {
-    val current = AppCompatDelegate.getApplicationLocales()
-    val selected = if (current.isEmpty) "" else current[0]?.language.orEmpty()
-    val options = listOf(
-        "" to stringResource(R.string.language_system),
-        "zh" to stringResource(R.string.language_zh),
-        "en" to stringResource(R.string.language_en),
-    )
-    Card(Modifier.fillMaxWidth()) {
-        options.forEach { (language, label) ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(selected = language == selected, role = Role.RadioButton) {
-                        val tag = when (language) {
-                            "zh" -> "zh-CN"
-                            else -> language
-                        }
-                        AppCompatDelegate.setApplicationLocales(
-                            if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList()
-                            else LocaleListCompat.forLanguageTags(tag),
-                        )
-                    }
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-            ) {
-                RadioButton(selected = language == selected, onClick = null)
-                Spacer(Modifier.width(12.dp))
-                Text(label, modifier = Modifier.padding(vertical = 12.dp))
-            }
-        }
-    }
-}
-
 /** 两步选择：先选基准货币，再选目标货币；已添加的组合不可再选。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -373,19 +302,18 @@ private fun PairPicker(
         }
 
         val from = base
-        val common = Currencies.COMMON.filter { it != from }
-        val others = Currencies.OTHERS.filter { it != from }
+        val select: (String) -> Unit = { code -> if (from == null) base = code else onPicked("$from/$code") }
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item { PickerHeader(stringResource(R.string.common_currencies)) }
-            items(common, key = { "c-$it" }) { code -> PickerRow(code, from, existing, locale) { pick(it, from, onPicked) { base = it } } }
+            items(Currencies.COMMON.filter { it != from }, key = { "c-$it" }) { code ->
+                PickerRow(code, from, existing, locale, select)
+            }
             item { PickerHeader(stringResource(R.string.all_currencies)) }
-            items(others, key = { "o-$it" }) { code -> PickerRow(code, from, existing, locale) { pick(it, from, onPicked) { base = it } } }
+            items(Currencies.OTHERS.filter { it != from }, key = { "o-$it" }) { code ->
+                PickerRow(code, from, existing, locale, select)
+            }
         }
     }
-}
-
-private inline fun pick(code: String, base: String?, onPicked: (String) -> Unit, setBase: (String) -> Unit) {
-    if (base == null) setBase(code) else onPicked("$base/$code")
 }
 
 @Composable

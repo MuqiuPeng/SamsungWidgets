@@ -10,12 +10,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
 import com.guans.widgets.ui.AppTheme
-import com.guans.widgets.ui.SettingsScreen
+import com.guans.widgets.ui.AppWithUpdates
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidget
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidgetReceiver
 import kotlinx.coroutines.launch
 
-/** 设置页。用 AppCompatActivity 以支持应用内切换语言（Android 12 及以下）。 */
+/** 应用入口（左侧抽屉：小工具设置 / 设置）。用 AppCompatActivity 以支持应用内切换语言（Android 12 及以下）。 */
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                SettingsScreen(onAddToHome = ::requestPin)
+                AppWithUpdates(onAddToHome = ::requestPin)
             }
         }
         // 语言切换后界面会重建，顺便让桌面上的小工具用新语言重绘

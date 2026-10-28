@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Desktop Widgets</string>
+    <string name="app_name" translatable="false">Toolbox</string>
 
     <!-- 汇率小工具 -->
     <string name="widget_exchange_rate_name">Exchange rates</string>
@@ -50,4 +50,31 @@
     <string name="add_to_home">Add to home screen</string>
     <string name="add_to_home_hint">Or long-press the home screen → Widgets → %1$s.</string>
     <string name="add_to_home_unsupported">Your launcher can\'t add it automatically. Please add it from the widget list.</string>
+
+    <!-- 导航 -->
+    <string name="open_menu">Open menu</string>
+    <string name="nav_widgets">Widgets</string>
+    <string name="nav_exchange_rate">Exchange rate</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- 关于与更新 -->
+    <string name="section_updates">Updates</string>
+    <string name="update_auto_note">Toolbox checks for a new version each time it opens.</string>
+    <string name="about_text">Toolbox is a set of home-screen widgets for Samsung (One UI) and other Android phones. Add them from the widget list on your home screen, and set them up here.\n\nExchange rate: rates come from free public sources (Coinbase, falling back to currency-api and ExchangeRate-API). They are mid-market reference rates, not bank or trading quotes.</string>
+    <string name="about_source">Source code on GitHub</string>
+    <string name="section_about">About</string>
+    <string name="version_label">Version %1$s</string>
+    <string name="check_updates">Check for updates</string>
+    <string name="checking_updates">Checking…</string>
+    <string name="up_to_date">You\'re on the latest version</string>
+    <string name="check_failed">Couldn\'t check for updates</string>
+    <string name="update_available">New version %1$s</string>
+    <string name="update_current">You have %1$s</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Later</string>
+    <string name="update_skip">Skip this version</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_failed">Download failed. You can get it from the release page instead.</string>
+    <string name="update_open_browser">Open release page</string>
+    <string name="update_allow_install">Allow this app to install updates, then tap Update again.</string>
 </resources>

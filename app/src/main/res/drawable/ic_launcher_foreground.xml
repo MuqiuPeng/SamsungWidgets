@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 小组件样式：三块圆角方块 + 一块斜放的方块，位于 66dp 安全区内 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M35,30h11a5,5 0,0 1,5 5v11a5,5 0,0 1,-5 5h-11a5,5 0,0 1,-5 -5v-11a5,5 0,0 1,5 -5z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M35,57h11a5,5 0,0 1,5 5v11a5,5 0,0 1,-5 5h-11a5,5 0,0 1,-5 -5v-11a5,5 0,0 1,5 -5z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M62,57h11a5,5 0,0 1,5 5v11a5,5 0,0 1,-5 5h-11a5,5 0,0 1,-5 -5v-11a5,5 0,0 1,5 -5z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M67.5,26.5L80,39 67.5,51.5 55,39z" />
+</vector>
