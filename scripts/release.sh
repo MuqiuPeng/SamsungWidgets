@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+version=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)
 tag="v$version"
 notes="${1:-}"
 
