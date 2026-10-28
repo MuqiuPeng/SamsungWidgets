@@ -15,7 +15,7 @@
     <!-- 设置页 -->
     <string name="settings_title">汇率小工具</string>
     <string name="section_pairs">货币对</string>
-    <string name="pairs_hint">按此顺序显示在小工具上</string>
+    <string name="pairs_hint">按此顺序显示在小工具上，涨跌为较前一日</string>
     <string name="pairs_empty">还没有货币对，点下方添加</string>
     <string name="add_pair">添加货币对</string>
     <string name="pairs_limit">最多 %1$d 个货币对</string>

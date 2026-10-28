@@ -45,7 +45,14 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
+import com.guans.widgets.data.changeDirection
+import com.guans.widgets.data.formatChange
 import com.guans.widgets.data.formatRate
+import com.guans.widgets.data.upIsRed
+import androidx.compose.ui.graphics.Color
+import androidx.glance.color.ColorProvider
+import androidx.glance.text.TextAlign
+import androidx.glance.unit.ColorProvider as GlanceColorProvider
 import java.text.DateFormat
 import java.util.Date
 
@@ -99,8 +106,11 @@ private fun Content(state: Preferences) {
         time != null -> "${state[RateKeys.SOURCE].orEmpty()} · $time"
         else -> ""
     }
-    // 窄小工具上省掉数据源、货币对写法更紧凑，保证数字完整显示
-    val roomy = LocalSize.current.width >= 220.dp
+    // 窄小工具上省掉数据源和涨跌、货币对写法更紧凑，保证汇率完整显示
+    val width = LocalSize.current.width
+    val roomy = width >= 220.dp
+    val showChange = width >= 180.dp
+    val upIsRed = upIsRed(context.resources.configuration.locales[0])
 
     Column(
         modifier = GlanceModifier
@@ -140,7 +150,7 @@ private fun Content(state: Preferences) {
             )
         } else {
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
-                items(rows) { (pair, rate) ->
+                items(rows) { (pair, rate, change) ->
                     val (from, to) = pair.split('/')
                     Row(
                         modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp)
@@ -157,9 +167,34 @@ private fun Content(state: Preferences) {
                             text = rate?.let(::formatRate) ?: "—",
                             style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium, color = GlanceTheme.colors.onSurface),
                         )
+                        if (showChange) {
+                            Text(
+                                text = change?.let(::formatChange) ?: "",
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.End,
+                                    color = changeColor(change, upIsRed),
+                                ),
+                                maxLines = 1,
+                                modifier = GlanceModifier.width(64.dp),
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+private val RISE_RED = ColorProvider(day = Color(0xFFD32F2F), night = Color(0xFFFF6B6B))
+private val FALL_GREEN = ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF5BD27A))
+
+@Composable
+private fun changeColor(change: Double?, upIsRed: Boolean): GlanceColorProvider {
+    val direction = change?.let(::changeDirection) ?: 0
+    return when {
+        direction == 0 -> GlanceTheme.colors.onSurfaceVariant
+        (direction > 0) == upIsRed -> RISE_RED
+        else -> FALL_GREEN
     }
 }

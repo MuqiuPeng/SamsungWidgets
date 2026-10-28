@@ -55,7 +55,13 @@ import androidx.compose.ui.unit.dp
 import com.guans.widgets.R
 import com.guans.widgets.data.Currencies
 import com.guans.widgets.data.Settings
+import com.guans.widgets.data.changeDirection
+import com.guans.widgets.data.formatChange
 import com.guans.widgets.data.formatRate
+import com.guans.widgets.data.upIsRed
+import com.guans.widgets.widgets.exchangerate.RateRow
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import com.guans.widgets.widgets.exchangerate.RateScheduler
 import com.guans.widgets.widgets.exchangerate.RateUpdater
 import java.text.DateFormat
@@ -87,7 +93,8 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         RateScheduler.refreshNow(context)
     }
 
-    val rates = cache?.rates?.toMap().orEmpty()
+    val rates = cache?.rates?.associateBy { it.pair }.orEmpty()
+    val upIsRed = upIsRed(locale)
 
     LazyColumn(contentPadding = screenPadding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
@@ -106,8 +113,9 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                     if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                     PairRow(
                         pair = pair,
-                        rate = rates[pair],
+                        row = rates[pair],
                         locale = locale,
+                        upIsRed = upIsRed,
                         canMoveUp = index > 0,
                         canMoveDown = index < pairs.lastIndex,
                         onReverse = {
@@ -206,8 +214,9 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
 @Composable
 private fun PairRow(
     pair: String,
-    rate: Double?,
+    row: RateRow?,
     locale: Locale,
+    upIsRed: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onReverse: () -> Unit,
@@ -229,7 +238,21 @@ private fun PairRow(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(rate?.let(::formatRate) ?: "—", style = MaterialTheme.typography.titleMedium)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(row?.rate?.let(::formatRate) ?: "—", style = MaterialTheme.typography.titleMedium)
+                    row?.changePercent?.let { change ->
+                        val direction = changeDirection(change)
+                        Text(
+                            formatChange(change),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = when {
+                                direction == 0 -> MaterialTheme.colorScheme.onSurfaceVariant
+                                (direction > 0) == upIsRed -> RISE_RED
+                                else -> FALL_GREEN
+                            },
+                        )
+                    }
+                }
                 IconButton(onClick = { menu = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                 }
@@ -342,3 +365,9 @@ private fun PickerRow(code: String, base: String?, existing: Set<String>, locale
         },
     )
 }
+
+private val RISE_RED: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFFF6B6B) else Color(0xFFD32F2F)
+
+private val FALL_GREEN: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF5BD27A) else Color(0xFF2E7D32)

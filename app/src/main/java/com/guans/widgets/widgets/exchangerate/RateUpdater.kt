@@ -20,13 +20,14 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.guans.widgets.data.Baseline
 import com.guans.widgets.data.RateRepository
 import com.guans.widgets.data.Settings
 import java.util.concurrent.TimeUnit
 
 /** 每个小工具实例的 Glance 状态键。 */
 object RateKeys {
-    /** 每行 "USD/CNY=6.6662"，取不到的币种为 "USD/XXX="。 */
+    /** 每行 "USD/CNY=6.6662;0.12"（汇率;较前一日涨跌百分比），取不到的部分留空。 */
     val RATES = stringPreferencesKey("rates")
     val UPDATED_AT = longPreferencesKey("updated_at")
     val SOURCE = stringPreferencesKey("source")
@@ -34,13 +35,20 @@ object RateKeys {
     val LOADING = booleanPreferencesKey("loading")
 }
 
-/** 最后一次成功拉取的结果。 */
-data class CachedRates(val rates: List<Pair<String, Double?>>, val updatedAt: Long, val source: String)
+/** 一个货币对的汇率及较前一日的涨跌（百分比）。 */
+data class RateRow(val pair: String, val rate: Double?, val changePercent: Double?)
 
-fun decodeRates(encoded: String?): List<Pair<String, Double?>> =
+/** 最后一次成功拉取的结果。 */
+data class CachedRates(val rates: List<RateRow>, val updatedAt: Long, val source: String)
+
+fun encodeRates(rows: List<RateRow>): String =
+    rows.joinToString("\n") { "${it.pair}=${it.rate ?: ""};${it.changePercent ?: ""}" }
+
+fun decodeRates(encoded: String?): List<RateRow> =
     encoded.orEmpty().lines().filter { it.isNotBlank() }.map { line ->
         val (pair, value) = line.split('=', limit = 2)
-        pair to value.toDoubleOrNull()
+        val parts = value.split(';')
+        RateRow(pair, parts[0].toDoubleOrNull(), parts.getOrNull(1)?.toDoubleOrNull())
     }
 
 /** 拉取汇率、写入缓存并推送给所有汇率小工具；缓存同时供设置页和新添加的实例使用。 */
@@ -62,9 +70,16 @@ object RateUpdater {
 
         try {
             val table = RateRepository.fetchUsdTable()
-            val encoded = Settings.pairs(context).joinToString("\n") { pair ->
-                "$pair=${RateRepository.cross(table, pair) ?: ""}"
-            }
+            val pairs = Settings.pairs(context)
+            val codes = pairs.flatMap { it.split('/') }.toSet()
+            // 基准取不到时只显示汇率，不影响主流程
+            val baseline = runCatching { Baseline.forTable(context, table, codes) }.getOrNull()
+            val encoded = encodeRates(pairs.map { pair ->
+                val rate = RateRepository.cross(table, pair)
+                val previous = baseline?.let { RateRepository.cross(it, pair) }
+                val change = if (rate != null && previous != null && previous > 0) (rate / previous - 1) * 100 else null
+                RateRow(pair, rate, change)
+            })
             val now = System.currentTimeMillis()
             cachePrefs(context).edit()
                 .putString("rates", encoded)

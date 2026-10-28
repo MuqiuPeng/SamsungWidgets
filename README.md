@@ -11,7 +11,7 @@ App 左侧抽屉分两部分：**小工具**（各小工具的设置）和**设�
 
 | 小工具 | 位置 | 说明 |
 | --- | --- | --- |
-| 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
+| 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率及较前一日涨跌（中文红涨绿跌，英文绿涨红跌）；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
 
 汇率设置页（`ui/ExchangeRateScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔。
 设置页（`ui/AppSettingsScreen.kt`）：语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。

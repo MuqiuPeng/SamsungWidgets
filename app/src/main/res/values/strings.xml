@@ -16,7 +16,7 @@
     <!-- 设置页 -->
     <string name="settings_title">Exchange rate widget</string>
     <string name="section_pairs">Currency pairs</string>
-    <string name="pairs_hint">Shown on the widget in this order</string>
+    <string name="pairs_hint">Shown on the widget in this order. Change is versus the previous day.</string>
     <string name="pairs_empty">No pairs yet. Add one below.</string>
     <string name="add_pair">Add pair</string>
     <string name="pairs_limit">Up to %1$d pairs</string>
