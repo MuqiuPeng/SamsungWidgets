@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">桌面小工具</string>
+    <string name="widget_exchange_rate_name">实时汇率</string>
+    <string name="widget_exchange_rate_desc">显示所选货币对的最新汇率，点击刷新</string>
+</resources>
