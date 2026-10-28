@@ -7,15 +7,20 @@ Android 主屏小组件集合（Kotlin + Jetpack Glance），在 One UI（三星
 
 | 小工具 | 位置 | 说明 |
 | --- | --- | --- |
-| 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率；每 15 分钟自动更新，点右上角图标立即刷新；点标题打开设置页编辑货币对 |
+| 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
+
+设置页（`ui/SettingsScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔；
+切换语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）。文案在 `res/values`（英文）和 `res/values-zh`（中文）。
 
 ## 结构
 
 ```
 app/src/main/java/com/guans/widgets/
-├── MainActivity.kt                 设置页（编辑货币对、一键添加到桌面）
+├── MainActivity.kt                 设置页入口（一键添加到桌面）
+├── ui/                             设置页界面（Compose + Material 3，跟随壁纸取色）
 ├── data/
-│   ├── Settings.kt                 货币对设置
+│   ├── Currencies.kt               可选货币、旗帜、本地化名称
+│   ├── Settings.kt                 货币对与刷新间隔
 │   └── RateRepository.kt           汇率数据源（多源回退，统一换算成 USD 基准表）
 └── widgets/exchangerate/
     ├── ExchangeRateWidget.kt       Glance 界面、receiver、刷新按钮

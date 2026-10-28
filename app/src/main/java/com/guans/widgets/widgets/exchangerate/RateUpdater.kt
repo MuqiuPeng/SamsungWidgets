@@ -1,6 +1,9 @@
 package com.guans.widgets.widgets.exchangerate
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -31,13 +34,30 @@ object RateKeys {
     val LOADING = booleanPreferencesKey("loading")
 }
 
-/** 拉取汇率并推送给所有汇率小工具；最后一次成功结果另存一份，供新添加的实例直接显示。 */
+/** 最后一次成功拉取的结果。 */
+data class CachedRates(val rates: List<Pair<String, Double?>>, val updatedAt: Long, val source: String)
+
+fun decodeRates(encoded: String?): List<Pair<String, Double?>> =
+    encoded.orEmpty().lines().filter { it.isNotBlank() }.map { line ->
+        val (pair, value) = line.split('=', limit = 2)
+        pair to value.toDoubleOrNull()
+    }
+
+/** 拉取汇率、写入缓存并推送给所有汇率小工具；缓存同时供设置页和新添加的实例使用。 */
 object RateUpdater {
     private const val CACHE = "rate_cache"
 
+    fun cachePrefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(CACHE, Context.MODE_PRIVATE)
+
+    fun cached(context: Context): CachedRates? {
+        val cache = cachePrefs(context)
+        val rates = cache.getString("rates", null) ?: return null
+        return CachedRates(decodeRates(rates), cache.getLong("updated_at", 0L), cache.getString("source", "") ?: "")
+    }
+
     suspend fun refresh(context: Context) {
         val ids = GlanceAppWidgetManager(context).getGlanceIds(ExchangeRateWidget::class.java)
-        if (ids.isEmpty()) return
         pushAll(context, ids) { it[RateKeys.LOADING] = true }
 
         try {
@@ -46,7 +66,7 @@ object RateUpdater {
                 "$pair=${RateRepository.cross(table, pair) ?: ""}"
             }
             val now = System.currentTimeMillis()
-            context.getSharedPreferences(CACHE, Context.MODE_PRIVATE).edit()
+            cachePrefs(context).edit()
                 .putString("rates", encoded)
                 .putLong("updated_at", now)
                 .putString("source", table.source)
@@ -69,7 +89,7 @@ object RateUpdater {
     /** 实例状态为空时，用最后一次成功的结果填充。 */
     fun seedFromCache(context: Context, prefs: MutablePreferences) {
         if (prefs[RateKeys.RATES] != null) return
-        val cache = context.getSharedPreferences(CACHE, Context.MODE_PRIVATE)
+        val cache = cachePrefs(context)
         val rates = cache.getString("rates", null) ?: return
         prefs[RateKeys.RATES] = rates
         prefs[RateKeys.UPDATED_AT] = cache.getLong("updated_at", 0L)
@@ -96,7 +116,7 @@ class RateRefreshWorker(context: Context, params: WorkerParameters) : CoroutineW
     }
 }
 
-/** 系统允许的最短周期是 15 分钟；更快的更新靠点击小工具上的刷新按钮。 */
+/** 按设置的间隔定时刷新（最短 15 分钟），更快的更新靠小工具上的刷新按钮。 */
 object RateScheduler {
     private const val PERIODIC = "exchange_rate_periodic"
     private const val ONCE = "exchange_rate_once"
@@ -104,11 +124,23 @@ object RateScheduler {
     private val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
     fun schedule(context: Context) {
-        val request = PeriodicWorkRequestBuilder<RateRefreshWorker>(15, TimeUnit.MINUTES)
+        val minutes = Settings.refreshMinutes(context)
+        val manager = WorkManager.getInstance(context)
+        if (minutes <= 0) {
+            manager.cancelUniqueWork(PERIODIC)
+            return
+        }
+        val request = PeriodicWorkRequestBuilder<RateRefreshWorker>(minutes.toLong(), TimeUnit.MINUTES)
             .setConstraints(online)
             .build()
-        WorkManager.getInstance(context)
-            .enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
+        manager.enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    /** 设置变化后调用：桌面上没有汇率小工具时不安排定时任务。 */
+    fun reschedule(context: Context) {
+        val ids = AppWidgetManager.getInstance(context)
+            .getAppWidgetIds(ComponentName(context, ExchangeRateWidgetReceiver::class.java))
+        if (ids.isNotEmpty()) schedule(context)
     }
 
     fun refreshNow(context: Context) {

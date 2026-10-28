@@ -11,6 +11,8 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -43,9 +45,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
-import java.text.SimpleDateFormat
+import com.guans.widgets.data.Currencies
+import com.guans.widgets.data.formatRate
+import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
 
 class ExchangeRateWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -84,16 +87,21 @@ class RefreshAction : ActionCallback {
 
 @Composable
 private fun Content(state: Preferences) {
+    val context = LocalContext.current
     val rows = decodeRates(state[RateKeys.RATES])
     val error = state[RateKeys.ERROR]
-    val updatedAt = state[RateKeys.UPDATED_AT]
-    val time = updatedAt?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)) }
+    val time = state[RateKeys.UPDATED_AT]?.let {
+        DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it))
+    }
     val status = when {
-        state[RateKeys.LOADING] == true -> "更新中…"
-        error != null -> if (time != null) "离线 · $time" else "获取失败"
+        state[RateKeys.LOADING] == true -> context.getString(R.string.status_updating)
+        error != null -> if (time != null) context.getString(R.string.status_offline, time)
+        else context.getString(R.string.status_failed)
         time != null -> "${state[RateKeys.SOURCE].orEmpty()} · $time"
         else -> ""
     }
+    // 窄小工具上省掉旗帜和数据源，保证数字完整显示
+    val roomy = LocalSize.current.width >= 220.dp
 
     Column(
         modifier = GlanceModifier
@@ -104,21 +112,22 @@ private fun Content(state: Preferences) {
     ) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "汇率",
+                text = context.getString(R.string.widget_title),
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
                 modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity<MainActivity>()),
             )
             Text(
-                text = status,
+                text = if (roomy || error != null || state[RateKeys.LOADING] == true) status else time.orEmpty(),
                 style = TextStyle(
                     fontSize = 11.sp,
                     color = if (error != null) GlanceTheme.colors.error else GlanceTheme.colors.onSurfaceVariant,
                 ),
+                maxLines = 1,
             )
             Spacer(GlanceModifier.width(8.dp))
             Image(
                 provider = ImageProvider(R.drawable.ic_refresh),
-                contentDescription = "刷新",
+                contentDescription = context.getString(R.string.action_refresh),
                 colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
                 modifier = GlanceModifier.size(22.dp).clickable(actionRunCallback<RefreshAction>()),
             )
@@ -127,19 +136,22 @@ private fun Content(state: Preferences) {
 
         if (rows.isEmpty()) {
             Text(
-                text = if (error != null) "获取失败，点右上角重试" else "加载中…",
+                text = context.getString(if (error != null) R.string.widget_failed_retry else R.string.widget_loading),
                 style = TextStyle(fontSize = 13.sp, color = GlanceTheme.colors.onSurfaceVariant),
             )
         } else {
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 items(rows) { (pair, rate) ->
+                    val (from, to) = pair.split('/')
                     Row(
-                        modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
+                        modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp)
+                            .clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = pair,
-                            style = TextStyle(fontSize = 14.sp, color = GlanceTheme.colors.onSurfaceVariant),
+                            text = if (roomy) "${Currencies.flag(from)} $from → ${Currencies.flag(to)} $to" else "$from/$to",
+                            style = TextStyle(fontSize = 13.sp, color = GlanceTheme.colors.onSurfaceVariant),
+                            maxLines = 1,
                             modifier = GlanceModifier.defaultWeight(),
                         )
                         Text(
@@ -151,20 +163,4 @@ private fun Content(state: Preferences) {
             }
         }
     }
-}
-
-private fun decodeRates(encoded: String?): List<Pair<String, Double?>> =
-    encoded.orEmpty().lines().filter { it.isNotBlank() }.map { line ->
-        val (pair, value) = line.split('=', limit = 2)
-        pair to value.toDoubleOrNull()
-    }
-
-/** 大数少保留小数，小数（如 JPY/CNY）多保留几位。 */
-private fun formatRate(rate: Double): String {
-    val pattern = when {
-        rate >= 100 -> "%.2f"
-        rate >= 1 -> "%.4f"
-        else -> "%.6f"
-    }
-    return String.format(Locale.US, pattern, rate)
 }

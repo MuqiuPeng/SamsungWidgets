@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">桌面小工具</string>
+
+    <!-- 汇率小工具 -->
+    <string name="widget_exchange_rate_name">实时汇率</string>
+    <string name="widget_exchange_rate_desc">显示所选货币对的最新汇率，点击刷新</string>
+    <string name="widget_title">汇率</string>
+    <string name="status_updating">更新中…</string>
+    <string name="status_offline">离线 · %1$s</string>
+    <string name="status_failed">获取失败</string>
+    <string name="widget_loading">加载中…</string>
+    <string name="widget_failed_retry">获取失败，点 ↻ 重试</string>
+    <string name="action_refresh">刷新</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">汇率小工具</string>
+    <string name="section_pairs">货币对</string>
+    <string name="pairs_hint">按此顺序显示在小工具上</string>
+    <string name="pairs_empty">还没有货币对，点下方添加</string>
+    <string name="add_pair">添加货币对</string>
+    <string name="pairs_limit">最多 %1$d 个货币对</string>
+    <string name="more_options">更多操作</string>
+    <string name="pair_reverse">反转</string>
+    <string name="pair_move_up">上移</string>
+    <string name="pair_move_down">下移</string>
+    <string name="pair_delete">删除</string>
+    <string name="last_updated">%1$s 更新 · %2$s</string>
+    <string name="never_updated">尚未更新</string>
+    <string name="refresh_now">立即刷新</string>
+
+    <string name="pick_base">选择基准货币</string>
+    <string name="pick_quote">将 %1$s 换算为</string>
+    <string name="common_currencies">常用</string>
+    <string name="all_currencies">全部货币</string>
+    <string name="pair_exists">已添加</string>
+    <string name="back">返回</string>
+
+    <string name="section_refresh">自动刷新</string>
+    <string name="refresh_minutes">%1$d 分钟</string>
+    <string name="refresh_manual">仅手动</string>
+    <string name="refresh_note">Android 限制小工具最快每 15 分钟自动更新一次；点小工具上的 ↻ 可立即更新。</string>
+
+    <string name="section_language">语言</string>
+    <string name="language_system">跟随系统</string>
+
+    <string name="section_widget">小工具</string>
+    <string name="add_to_home">添加到桌面</string>
+    <string name="add_to_home_hint">也可以长按桌面空白处 → 小组件 → %1$s。</string>
+    <string name="add_to_home_unsupported">当前桌面不支持一键添加，请从小组件列表中手动添加。</string>
+</resources>
