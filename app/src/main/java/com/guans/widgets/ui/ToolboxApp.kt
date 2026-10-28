@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,15 +36,30 @@ import com.guans.widgets.R
 import kotlinx.coroutines.launch
 
 /** 抽屉里的页面。新增小工具时在 WIDGETS 里加一项。 */
-enum class Destination { ExchangeRate, Settings }
+enum class Destination { ExchangeRate, Routines, Settings }
 
-private val WIDGETS = listOf(Destination.ExchangeRate)
+private val WIDGETS = listOf(Destination.ExchangeRate, Destination.Routines)
+
+/** 从小工具打开时要跳到的页面；id 不同才算新的请求。 */
+data class DestinationRequest(val destination: Destination, val id: Long = System.nanoTime())
 
 /** 应用骨架：左侧抽屉分为“小工具”和“设置”两部分。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolboxApp(onAddToHome: () -> Unit, checkingUpdates: Boolean, onCheckUpdates: () -> Unit) {
+fun ToolboxApp(
+    request: DestinationRequest?,
+    onAddToHome: (Destination) -> Unit,
+    checkingUpdates: Boolean,
+    onCheckUpdates: () -> Unit,
+) {
     var destination by rememberSaveable { mutableStateOf(Destination.ExchangeRate) }
+    var handledRequest by rememberSaveable { mutableStateOf(0L) }
+    LaunchedEffect(request) {
+        if (request != null && request.id != handledRequest) {
+            handledRequest = request.id
+            destination = request.destination
+        }
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -75,7 +91,7 @@ fun ToolboxApp(onAddToHome: () -> Unit, checkingUpdates: Boolean, onCheckUpdates
                     )
                     WIDGETS.forEach { widget ->
                         NavigationDrawerItem(
-                            icon = { Icon(painterResource(R.drawable.ic_exchange), contentDescription = null) },
+                            icon = { Icon(painterResource(icon(widget)), contentDescription = null) },
                             label = { Text(title(widget)) },
                             selected = destination == widget,
                             onClick = { go(widget) },
@@ -107,7 +123,8 @@ fun ToolboxApp(onAddToHome: () -> Unit, checkingUpdates: Boolean, onCheckUpdates
             },
         ) { padding ->
             when (destination) {
-                Destination.ExchangeRate -> ExchangeRateScreen(padding, onAddToHome)
+                Destination.ExchangeRate -> ExchangeRateScreen(padding) { onAddToHome(Destination.ExchangeRate) }
+                Destination.Routines -> RoutineScreen(padding) { onAddToHome(Destination.Routines) }
                 Destination.Settings -> AppSettingsScreen(padding, checkingUpdates, onCheckUpdates)
             }
         }
@@ -117,7 +134,13 @@ fun ToolboxApp(onAddToHome: () -> Unit, checkingUpdates: Boolean, onCheckUpdates
 @Composable
 private fun title(destination: Destination): String = when (destination) {
     Destination.ExchangeRate -> stringResource(R.string.settings_title)
+    Destination.Routines -> stringResource(R.string.routine_settings_title)
     Destination.Settings -> stringResource(R.string.nav_settings)
+}
+
+private fun icon(widget: Destination): Int = when (widget) {
+    Destination.Routines -> R.drawable.ic_routine
+    else -> R.drawable.ic_exchange
 }
 
 /** 各页面共用的内容边距：左右 16dp，上下避开顶栏和系统栏。 */

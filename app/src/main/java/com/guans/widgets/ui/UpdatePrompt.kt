@@ -42,7 +42,7 @@ private sealed interface UpdateState {
 
 /** 应用界面 + 更新提示：启动时静默检查一次，有新版本（且未被跳过）就弹窗。 */
 @Composable
-fun AppWithUpdates(onAddToHome: () -> Unit) {
+fun AppWithUpdates(request: DestinationRequest?, onAddToHome: (Destination) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<UpdateState>(UpdateState.Idle) }
@@ -101,6 +101,7 @@ fun AppWithUpdates(onAddToHome: () -> Unit) {
     }
 
     ToolboxApp(
+        request = request,
         onAddToHome = onAddToHome,
         checkingUpdates = state is UpdateState.Checking,
         onCheckUpdates = { check(manual = true) },

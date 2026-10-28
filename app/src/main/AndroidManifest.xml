@@ -16,7 +16,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -34,6 +35,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/exchange_rate_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.routine.RoutineWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_routine_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/routine_widget_info" />
         </receiver>
 
         <provider
