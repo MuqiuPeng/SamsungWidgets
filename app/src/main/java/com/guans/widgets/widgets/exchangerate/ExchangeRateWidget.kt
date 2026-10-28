@@ -45,7 +45,6 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
-import com.guans.widgets.data.Currencies
 import com.guans.widgets.data.formatRate
 import java.text.DateFormat
 import java.util.Date
@@ -100,7 +99,7 @@ private fun Content(state: Preferences) {
         time != null -> "${state[RateKeys.SOURCE].orEmpty()} · $time"
         else -> ""
     }
-    // 窄小工具上省掉旗帜和数据源，保证数字完整显示
+    // 窄小工具上省掉数据源、货币对写法更紧凑，保证数字完整显示
     val roomy = LocalSize.current.width >= 220.dp
 
     Column(
@@ -149,7 +148,7 @@ private fun Content(state: Preferences) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = if (roomy) "${Currencies.flag(from)} $from → ${Currencies.flag(to)} $to" else "$from/$to",
+                            text = if (roomy) "$from → $to" else "$from/$to",
                             style = TextStyle(fontSize = 13.sp, color = GlanceTheme.colors.onSurfaceVariant),
                             maxLines = 1,
                             modifier = GlanceModifier.defaultWeight(),

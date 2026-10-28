@@ -19,7 +19,7 @@ app/src/main/java/com/guans/widgets/
 ├── MainActivity.kt                 设置页入口（一键添加到桌面）
 ├── ui/                             设置页界面（Compose + Material 3，跟随壁纸取色）
 ├── data/
-│   ├── Currencies.kt               可选货币、旗帜、本地化名称
+│   ├── Currencies.kt               可选货币、本地化名称
 │   ├── Settings.kt                 货币对与刷新间隔
 │   └── RateRepository.kt           汇率数据源（多源回退，统一换算成 USD 基准表）
 └── widgets/exchangerate/

@@ -59,7 +59,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
 import com.guans.widgets.R
 import com.guans.widgets.data.Currencies
@@ -255,7 +254,6 @@ private fun PairRow(
     var menu by remember { mutableStateOf(false) }
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        leadingContent = { Text(Currencies.flag(from) + Currencies.flag(to), fontSize = 22.sp) },
         headlineContent = { Text("$from → $to") },
         supportingContent = {
             Text(
@@ -405,7 +403,6 @@ private fun PickerRow(code: String, base: String?, existing: Set<String>, locale
     val taken = base != null && "$base/$code" in existing
     ListItem(
         modifier = Modifier.clickable(enabled = !taken) { onClick(code) }.padding(horizontal = 8.dp),
-        leadingContent = { Text(Currencies.flag(code), fontSize = 26.sp) },
         headlineContent = {
             Text(code, color = if (taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
         },
