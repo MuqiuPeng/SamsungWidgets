@@ -6,6 +6,10 @@ import android.content.ComponentName
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -60,6 +66,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.guans.widgets.R
 import com.guans.widgets.data.GlassBackground
+import com.guans.widgets.data.HomeGrid
 import com.guans.widgets.widgets.common.redrawAllWidgets
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidgetReceiver
 import com.guans.widgets.widgets.routine.RoutineWidgetReceiver
@@ -182,10 +189,22 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
     val (screenW, screenH) = remember { GlassBackground.screenSizePx(context) }
     val (widgetW, widgetH) = remember { GlassBackground.widgetSizePx(context, widget.appWidgetId) }
     val start = remember { GlassBackground.position(context, widget.appWidgetId) ?: GlassBackground.Position(0.5f, 0.5f) }
+    var grid by remember { mutableStateOf(HomeGrid.current(context)) }
     var centerX by remember { mutableFloatStateOf(start.centerX) }
     var centerY by remember { mutableFloatStateOf(start.centerY) }
+    var dragging by remember { mutableStateOf(false) }
+
+    fun snap() {
+        val snapped = grid.snap(context, GlassBackground.Position(centerX, centerY), widgetW, widgetH, screenW, screenH)
+        centerX = snapped.centerX
+        centerY = snapped.centerY
+    }
+    // 松手后滑到吸附位置；拖动时跟手
+    val shownX by animateFloatAsState(centerX, if (dragging) snap<Float>() else tween(180), label = "x")
+    val shownY by animateFloatAsState(centerY, if (dragging) snap<Float>() else tween(180), label = "y")
     var wallpaper by remember { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(Unit) {
+        if (GlassBackground.position(context, widget.appWidgetId) == null) snap()
         wallpaper = withContext(Dispatchers.IO) { GlassBackground.screenWallpaper(context, 1f / 3) }
     }
 
@@ -199,6 +218,24 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                ) {
+                    Text(stringResource(R.string.glass_grid), style = MaterialTheme.typography.labelLarge)
+                    HomeGrid.OPTIONS.forEach { option ->
+                        FilterChip(
+                            selected = option == grid,
+                            onClick = {
+                                grid = option
+                                HomeGrid.set(context, option)
+                                snap()
+                            },
+                            label = { Text("${option.columns}×${option.rows}") },
+                        )
+                    }
+                }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     BoxWithConstraints(
                         Modifier
@@ -220,15 +257,34 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
+                        // 桌面网格线（估算），帮助看清会吸附到哪里
+                        val gridColor = Color.White.copy(alpha = 0.45f)
+                        Canvas(Modifier.fillMaxSize()) {
+                            val cells = grid.cells(context, screenW, screenH)
+                            val sx = size.width / screenW
+                            val sy = size.height / screenH
+                            for (col in 0..grid.columns) {
+                                val x = (cells.left + col * cells.cellW) * sx
+                                drawLine(gridColor, Offset(x, cells.top * sy), Offset(x, (cells.top + grid.rows * cells.cellH) * sy), 1f)
+                            }
+                            for (row in 0..grid.rows) {
+                                val y = (cells.top + row * cells.cellH) * sy
+                                drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1f)
+                            }
+                        }
                         Box(
                             Modifier
-                                .offset { IntOffset((centerX * boxW - rectW / 2).roundToInt(), (centerY * boxH - rectH / 2).roundToInt()) }
+                                .offset { IntOffset((shownX * boxW - rectW / 2).roundToInt(), (shownY * boxH - rectH / 2).roundToInt()) }
                                 .size(with(density) { rectW.toDp() }, with(density) { rectH.toDp() })
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(Color.White.copy(alpha = 0.35f))
                                 .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
                                 .pointerInput(boxW, boxH) {
-                                    detectDragGestures { change, drag ->
+                                    detectDragGestures(
+                                        onDragStart = { dragging = true },
+                                        onDragEnd = { dragging = false; snap() },
+                                        onDragCancel = { dragging = false; snap() },
+                                    ) { change, drag ->
                                         change.consume()
                                         val halfW = rectW / 2 / boxW
                                         val halfH = rectH / 2 / boxH

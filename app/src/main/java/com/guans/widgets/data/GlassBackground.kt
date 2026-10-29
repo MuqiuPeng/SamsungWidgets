@@ -227,3 +227,70 @@ object GlassBackground {
         }
     }
 }
+
+/**
+ * 桌面网格，用于对齐时自动吸附。One UI 的网格可在桌面设置里选（4×5、4×6、5×5、5×6），
+ * 这里按“状态栏下方是图标区、最下面一行是 Dock”估算每个格子的位置。
+ */
+data class HomeGrid(val columns: Int, val rows: Int) {
+    /** 屏幕上的格子区域（像素）：左、上、格宽、格高。 */
+    data class Cells(val left: Float, val top: Float, val cellW: Float, val cellH: Float)
+
+    fun cells(context: Context, screenW: Int, screenH: Int): Cells {
+        val res = context.resources
+        fun dimen(name: String): Float {
+            val id = res.getIdentifier(name, "dimen", "android")
+            return if (id != 0) res.getDimension(id) else 0f
+        }
+        val statusBar = dimen("status_bar_height")
+        val navBar = dimen("navigation_bar_height")
+        // 图标区下面还有页码指示和 Dock，约占 1.3 行
+        val cellH = (screenH - statusBar - navBar) / (rows + 1.3f)
+        return Cells(left = 0f, top = statusBar, cellW = screenW.toFloat() / columns, cellH = cellH)
+    }
+
+    /**
+     * 把小工具中心吸附到最近的格子位置：按小工具大小算出占几格，候选位置是占满整格时的中心。
+     * 离最近的候选位置不到半格才吸附，否则保持原样。
+     */
+    fun snap(context: Context, center: GlassBackground.Position, widgetW: Int, widgetH: Int, screenW: Int, screenH: Int): GlassBackground.Position {
+        val c = cells(context, screenW, screenH)
+        val spanX = (widgetW / c.cellW).roundToInt().coerceIn(1, columns)
+        val spanY = (widgetH / c.cellH).roundToInt().coerceIn(1, rows)
+        val x = center.centerX * screenW
+        val y = center.centerY * screenH
+        var best: Pair<Float, Float>? = null
+        var bestDistance = Float.MAX_VALUE
+        for (col in 0..columns - spanX) {
+            for (row in 0..rows - spanY) {
+                val cx = c.left + (col + spanX / 2f) * c.cellW
+                val cy = c.top + (row + spanY / 2f) * c.cellH
+                val d = kotlin.math.hypot(cx - x, cy - y)
+                if (d < bestDistance) {
+                    bestDistance = d
+                    best = cx to cy
+                }
+            }
+        }
+        val target = best ?: return center
+        if (bestDistance > minOf(c.cellW, c.cellH) / 2) return center
+        return GlassBackground.Position(target.first / screenW, target.second / screenH)
+    }
+
+    companion object {
+        val OPTIONS = listOf(HomeGrid(4, 5), HomeGrid(4, 6), HomeGrid(5, 5), HomeGrid(5, 6))
+        private const val PREFS = "glass"
+
+        fun current(context: Context): HomeGrid {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            return HomeGrid(prefs.getInt("grid_columns", 4), prefs.getInt("grid_rows", 5))
+        }
+
+        fun set(context: Context, grid: HomeGrid) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putInt("grid_columns", grid.columns)
+                .putInt("grid_rows", grid.rows)
+                .apply()
+        }
+    }
+}
