@@ -94,8 +94,45 @@ object GlassBackground {
         prefs(context).edit().putInt("inset_dp", dp).apply()
     }
 
-    /** 小工具实际可见的大小（像素）：格子区域扣掉每边的边距。 */
+    /**
+     * 点一下小工具时自动定位：bounds 是小工具可见区域在屏幕上的位置（像素）。
+     * 同时记下实际大小，和当时系统报的大小一起存；小工具被拉伸后系统报的大小变了，就不再用旧的实测值。
+     * 返回位置是否有明显变化。
+     */
+    fun locate(context: Context, appWidgetId: Int, bounds: android.graphics.Rect): Boolean {
+        val (screenW, screenH) = screenSizePx(context)
+        val position = Position(bounds.exactCenterX() / screenW, bounds.exactCenterY() / screenH)
+        val old = position(context, appWidgetId)
+        val (reportedW, reportedH) = widgetSizePx(context, appWidgetId)
+        setPosition(context, appWidgetId, position)
+        prefs(context).edit()
+            .putInt("w_$appWidgetId", bounds.width())
+            .putInt("h_$appWidgetId", bounds.height())
+            .putString("reported_$appWidgetId", "${reportedW}x$reportedH")
+            .putBoolean("located_$appWidgetId", true)
+            .apply()
+        return old == null ||
+            kotlin.math.abs(old.centerX - position.centerX) * screenW > 4 ||
+            kotlin.math.abs(old.centerY - position.centerY) * screenH > 4
+    }
+
+    /** 是否由点击自动定位过（设置页显示用）。 */
+    fun located(context: Context, appWidgetId: Int): Boolean = prefs(context).getBoolean("located_$appWidgetId", false)
+
+    /** 实测的可见大小；没测过或小工具大小已经变了时为 null。 */
+    private fun measuredSizePx(context: Context, appWidgetId: Int): Pair<Int, Int>? {
+        val prefs = prefs(context)
+        val w = prefs.getInt("w_$appWidgetId", 0)
+        val h = prefs.getInt("h_$appWidgetId", 0)
+        if (w <= 0 || h <= 0) return null
+        val (reportedW, reportedH) = widgetSizePx(context, appWidgetId)
+        if (prefs.getString("reported_$appWidgetId", null) != "${reportedW}x$reportedH") return null
+        return w to h
+    }
+
+    /** 小工具实际可见的大小（像素）：有实测值就用实测值，否则用格子区域扣掉每边的边距。 */
     fun visibleSizePx(context: Context, appWidgetId: Int, insetDp: Int = insetDp(context)): Pair<Int, Int> {
+        measuredSizePx(context, appWidgetId)?.let { return it }
         val (w, h) = widgetSizePx(context, appWidgetId)
         val inset = (2 * insetDp * context.resources.displayMetrics.density).roundToInt()
         return max(1, w - inset) to max(1, h - inset)

@@ -39,7 +39,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
-import com.guans.widgets.widgets.common.widgetSurface
+import com.guans.widgets.ui.Destination
+import com.guans.widgets.widgets.common.WidgetContainer
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
 import com.guans.widgets.data.formatStatus
@@ -103,18 +104,13 @@ private fun Content(state: Preferences) {
     val undo = Routines.pendingUndo(context, now)
     val openApp = actionStartActivity<MainActivity>(actionParametersOf(MainActivity.DESTINATION to MainActivity.ROUTINES))
 
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .widgetSurface()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
+    WidgetContainer(Destination.Routines) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = context.getString(R.string.routine_widget_title),
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
                 maxLines = 1,
-                modifier = GlanceModifier.defaultWeight().clickable(openApp),
+                modifier = GlanceModifier.defaultWeight(),
             )
             if (undo != null) {
                 Text(

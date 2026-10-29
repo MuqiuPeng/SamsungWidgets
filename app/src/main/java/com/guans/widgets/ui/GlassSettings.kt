@@ -154,8 +154,11 @@ fun GlassSettings() {
                     Text(widget.label)
                     Text(
                         stringResource(
-                            if (GlassBackground.position(context, widget.appWidgetId) == null) R.string.glass_not_aligned
-                            else R.string.glass_aligned,
+                            when {
+                                GlassBackground.located(context, widget.appWidgetId) -> R.string.glass_auto_located
+                                GlassBackground.position(context, widget.appWidgetId) == null -> R.string.glass_not_aligned
+                                else -> R.string.glass_aligned
+                            },
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

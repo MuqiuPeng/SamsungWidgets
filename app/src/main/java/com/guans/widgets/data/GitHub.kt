@@ -2,6 +2,7 @@ package com.guans.widgets.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.guans.widgets.widgets.github.GitHubNotifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -112,7 +113,10 @@ object GitHub {
         var error: String? = null
         val statuses = repos(context).mapNotNull { entry ->
             runCatching { fetchStatus(context, entry) }
-                .onFailure { error = it.message ?: it.javaClass.simpleName }
+                .onFailure {
+                    error = it.message ?: it.javaClass.simpleName
+                    ErrorLog.record(context, "github $entry", it)
+                }
                 .getOrNull() ?: previous[fullName(entry)]
         }
         prefs(context).edit()
@@ -120,6 +124,21 @@ object GitHub {
             .putLong("updated_at", if (error == null) System.currentTimeMillis() else prefs(context).getLong("updated_at", 0L))
             .putString("error", error)
             .apply()
+        GitHubNotifier.notifyChanges(context, previous, statuses)
+    }
+
+    // ---------- 通知开关（默认都开）
+
+    fun notifyActions(context: Context): Boolean = prefs(context).getBoolean("notify_actions", true)
+
+    fun notifyReleases(context: Context): Boolean = prefs(context).getBoolean("notify_releases", true)
+
+    fun setNotifyActions(context: Context, on: Boolean) {
+        prefs(context).edit().putBoolean("notify_actions", on).apply()
+    }
+
+    fun setNotifyReleases(context: Context, on: Boolean) {
+        prefs(context).edit().putBoolean("notify_releases", on).apply()
     }
 
     /** 账号能看到的仓库（含私有，需在该账号上安装了 GitHub App），按最近推送排序，供设置页选择。 */

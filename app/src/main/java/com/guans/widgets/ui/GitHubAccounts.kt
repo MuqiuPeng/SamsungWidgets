@@ -1,5 +1,10 @@
 package com.guans.widgets.ui
 
+import com.guans.widgets.data.ErrorLog
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +32,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -50,6 +56,7 @@ import com.guans.widgets.R
 import com.guans.widgets.data.GitHub
 import com.guans.widgets.data.GitHubAuth
 import com.guans.widgets.update.UpdateChecker
+import com.guans.widgets.widgets.github.GitHubNotifier
 
 /** 已关联的 GitHub 账号，以及“关联账号”按钮。 */
 @Composable
@@ -110,6 +117,7 @@ fun LinkAccountDialog(onDismiss: () -> Unit, onLinked: () -> Unit) {
             GitHubAuth.await(context, device)
             onLinked()
         } catch (e: GitHubAuth.AuthException) {
+            ErrorLog.note(context, "github link", e.reason)
             error = context.getString(
                 when (e.reason) {
                     "access_denied" -> R.string.github_link_denied
@@ -118,6 +126,7 @@ fun LinkAccountDialog(onDismiss: () -> Unit, onLinked: () -> Unit) {
                 },
             )
         } catch (e: Exception) {
+            ErrorLog.record(context, "github link", e)
             error = context.getString(R.string.github_link_failed)
         }
     }
@@ -257,4 +266,48 @@ private fun InstallHint() {
             Text(stringResource(R.string.github_install))
         }
     }
+}
+
+/** 通知开关：Actions 失败 / 恢复、新 Release。Android 13 起打开时先申请通知权限。 */
+@Composable
+fun NotificationSettings() {
+    val context = LocalContext.current
+    var actions by remember { mutableStateOf(GitHub.notifyActions(context)) }
+    var releases by remember { mutableStateOf(GitHub.notifyReleases(context)) }
+    var allowed by remember { mutableStateOf(GitHubNotifier.canPost(context)) }
+    val request = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { allowed = it }
+
+    fun ensurePermission() {
+        if (!allowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            request.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    Card(Modifier.fillMaxWidth()) {
+        SwitchRow(stringResource(R.string.notify_actions), actions) {
+            actions = it
+            GitHub.setNotifyActions(context, it)
+            if (it) ensurePermission()
+        }
+        SwitchRow(stringResource(R.string.notify_releases), releases) {
+            releases = it
+            GitHub.setNotifyReleases(context, it)
+            if (it) ensurePermission()
+        }
+        if (!allowed && (actions || releases)) {
+            TextButton(onClick = { ensurePermission() }, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)) {
+                Text(stringResource(R.string.notify_allow))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable { onChange(!checked) },
+        headlineContent = { Text(label) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
+    )
 }

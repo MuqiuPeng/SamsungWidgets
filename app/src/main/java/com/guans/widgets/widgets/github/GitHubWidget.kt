@@ -53,7 +53,7 @@ import com.guans.widgets.data.GitHub
 import com.guans.widgets.data.RepoStatus
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.ui.Destination
-import com.guans.widgets.widgets.common.widgetSurface
+import com.guans.widgets.widgets.common.WidgetContainer
 
 class GitHubWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -107,18 +107,13 @@ private fun Content(state: Preferences) {
         else -> ""
     }
 
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .widgetSurface()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
+    WidgetContainer(Destination.GitHub) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = context.getString(R.string.github_widget_title),
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
                 maxLines = 1,
-                modifier = GlanceModifier.defaultWeight().clickable(openApp),
+                modifier = GlanceModifier.defaultWeight(),
             )
             Text(
                 text = status,

@@ -1,7 +1,20 @@
 package com.guans.widgets.widgets.common
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
+import androidx.glance.appwidget.AndroidRemoteViews
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.ColumnScope
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.padding
+import com.guans.widgets.MainActivity
+import com.guans.widgets.R
+import com.guans.widgets.data.ErrorLog
+import com.guans.widgets.ui.Destination
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceModifier
@@ -30,7 +43,9 @@ fun GlanceModifier.widgetSurface(): GlanceModifier {
     val context = LocalContext.current
     val glass = if (Settings.glassBackground(context)) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(LocalGlanceId.current)
-        runCatching { GlassBackground.backgroundFor(context, appWidgetId) }.getOrNull()
+        runCatching { GlassBackground.backgroundFor(context, appWidgetId) }
+            .onFailure { ErrorLog.record(context, "glass background", it) }
+            .getOrNull()
     } else {
         null
     }
@@ -40,6 +55,40 @@ fun GlanceModifier.widgetSurface(): GlanceModifier {
         background(GlanceTheme.colors.widgetBackground)
     }
     return base.cornerRadius(24.dp)
+}
+
+/**
+ * 小工具的外框：背景 + 一层铺满的透明点击层 + 内容。
+ * 点到内容里没有点击动作的地方（标题、空白、边距）时由点击层接住：打开对应设置页，
+ * 并且系统会附上被点区域在屏幕上的位置，用来自动定位玻璃背景（Glance 自己的点击拿不到这个位置）。
+ */
+@Composable
+fun WidgetContainer(destination: Destination, content: @Composable ColumnScope.() -> Unit) {
+    val context = LocalContext.current
+    val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(LocalGlanceId.current)
+    Box(GlanceModifier.fillMaxSize().widgetSurface()) {
+        AndroidRemoteViews(tapProbe(context, appWidgetId, destination), GlanceModifier.fillMaxSize())
+        Column(
+            modifier = GlanceModifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+            content = content,
+        )
+    }
+}
+
+private fun tapProbe(context: Context, appWidgetId: Int, destination: Destination): RemoteViews {
+    val intent = Intent(context, MainActivity::class.java)
+        .putExtra(MainActivity.DESTINATION.name, destination.name)
+        .putExtra(MainActivity.EXTRA_LOCATE, appWidgetId)
+    // 必须是可变的 PendingIntent，桌面才能把点击位置（sourceBounds）填进去
+    val pending = PendingIntent.getActivity(
+        context,
+        appWidgetId,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+    )
+    return RemoteViews(context.packageName, R.layout.widget_tap_probe).apply {
+        setOnClickPendingIntent(R.id.tap_probe, pending)
+    }
 }
 
 private val STYLE_CHANGED = longPreferencesKey("style_changed")

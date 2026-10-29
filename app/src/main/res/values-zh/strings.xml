@@ -145,11 +145,11 @@
     <string name="widget_style_solid">实色</string>
     <string name="glass_need_access">要把小工具背后的壁纸做成模糊效果，Toolbox 需要读取壁纸。Android 13 起，系统只对“所有文件访问”权限开放壁纸。Toolbox 只读取壁纸，不会上传任何内容。授权前小工具使用实色背景。</string>
     <string name="glass_grant">去授权</string>
-    <string name="glass_position_hint">Android 不会告诉小工具它在屏幕上的位置，需要为每个小工具对齐一次，背后的模糊壁纸才能和桌面对上。</string>
+    <string name="glass_position_hint">点一下桌面上小工具的空白处（比如标题），Toolbox 会自动记下它在屏幕上的位置。也可以在这里手动对齐。</string>
     <string name="glass_no_widgets">桌面上还没有 Toolbox 小工具。</string>
     <string name="glass_align">对齐位置</string>
     <string name="glass_aligned">已对齐</string>
-    <string name="glass_not_aligned">未对齐（暂按屏幕中央）</string>
+    <string name="glass_not_aligned">未定位：点一下小工具的空白处</string>
     <string name="glass_drag_hint">选和桌面设置一致的网格，把方框拖到这个小工具在桌面上的位置，松手会自动吸附到格子上，返回即保存。</string>
     <string name="glass_grid">桌面网格</string>
     <string name="drag_to_reorder">拖动排序</string>
@@ -193,4 +193,21 @@
     <string name="github_install_more">安装到其他账号或修改可见仓库</string>
     <string name="github_unauthorized">有账号的授权已失效，请取消关联后重新关联。</string>
     <string name="glass_inset">边距 dp</string>
+    <string name="section_error_log">错误日志</string>
+    <string name="error_log_note">崩溃和后台出错会记录在本机。反馈问题时分享日志即可，日志里不含密码和令牌。</string>
+    <string name="error_log_empty">没有错误记录</string>
+    <string name="error_log_count">%1$d 条记录</string>
+    <string name="error_log_share">分享</string>
+    <string name="error_log_clear">清空</string>
+    <string name="glass_located">已按点击位置对齐玻璃背景</string>
+    <string name="glass_auto_located">已自动定位</string>
+    <string name="section_notifications">通知</string>
+    <string name="notify_note">每次后台刷新时检查，所以桌面上要放着 GitHub 小工具才会生效。</string>
+    <string name="notify_actions">Actions 失败或恢复</string>
+    <string name="notify_releases">发布新版本</string>
+    <string name="notify_allow">允许通知</string>
+    <string name="notify_channel_github">GitHub 仓库</string>
+    <string name="notify_ci_failed">%1$s：Actions 失败</string>
+    <string name="notify_ci_fixed">%1$s：Actions 已恢复</string>
+    <string name="notify_release">%1$s 发布了 %2$s</string>
 </resources>

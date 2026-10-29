@@ -13,6 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
+import com.guans.widgets.data.ErrorLog
+import com.guans.widgets.data.GlassBackground
+import com.guans.widgets.data.Settings
 import com.guans.widgets.ui.AppTheme
 import com.guans.widgets.ui.AppWithUpdates
 import com.guans.widgets.ui.Destination
@@ -23,6 +26,7 @@ import com.guans.widgets.widgets.github.GitHubUpdater
 import com.guans.widgets.widgets.github.GitHubWidgetReceiver
 import com.guans.widgets.widgets.routine.RoutineTicker
 import com.guans.widgets.widgets.routine.RoutineWidgetReceiver
+import com.guans.widgets.widgets.common.redrawAllWidgets
 import kotlinx.coroutines.launch
 
 /** 应用入口（左侧抽屉：小工具设置 / 设置）。用 AppCompatActivity 以支持应用内切换语言（Android 12 及以下）。 */
@@ -54,11 +58,27 @@ class MainActivity : AppCompatActivity() {
         handle(intent)
     }
 
-    /** 从小工具点进来时，直接打开对应的设置页。 */
+    /** 从小工具点进来时，直接打开对应的设置页；点的是空白处时顺便自动定位玻璃背景。 */
     private fun handle(intent: Intent?) {
+        locate(intent)
         val name = intent?.getStringExtra(DESTINATION.name) ?: return
         val destination = Destination.entries.firstOrNull { it.name == name } ?: return
         request = DestinationRequest(destination)
+    }
+
+    private fun locate(intent: Intent?) {
+        val appWidgetId = intent?.getIntExtra(EXTRA_LOCATE, AppWidgetManager.INVALID_APPWIDGET_ID)
+            ?: return
+        val bounds = intent.sourceBounds
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        if (bounds == null || bounds.isEmpty) {
+            ErrorLog.note(this, "glass locate", "no sourceBounds for widget $appWidgetId")
+            return
+        }
+        if (GlassBackground.locate(this, appWidgetId, bounds) && Settings.glassBackground(this)) {
+            Toast.makeText(this, R.string.glass_located, Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch { redrawAllWidgets(applicationContext) }
+        }
     }
 
     private fun requestPin(destination: Destination) {
@@ -79,5 +99,8 @@ class MainActivity : AppCompatActivity() {
         /** 小工具打开应用时带的参数：要显示的页面（Destination 的名字）。 */
         val DESTINATION = androidx.glance.action.ActionParameters.Key<String>("destination")
         val ROUTINES = Destination.Routines.name
+
+        /** 小工具点击层带的参数：被点的小工具 id，用来自动定位玻璃背景。 */
+        const val EXTRA_LOCATE = "locate_widget_id"
     }
 }

@@ -1,5 +1,6 @@
 package com.guans.widgets.widgets.exchangerate
 
+import com.guans.widgets.data.ErrorLog
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -94,6 +95,7 @@ object RateUpdater {
                 it[RateKeys.LOADING] = false
             }
         } catch (e: Exception) {
+            ErrorLog.record(context, "exchange refresh", e)
             pushAll(context, ids) {
                 it[RateKeys.ERROR] = e.message ?: e.javaClass.simpleName
                 it[RateKeys.LOADING] = false

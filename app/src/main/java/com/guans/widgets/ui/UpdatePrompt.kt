@@ -1,5 +1,6 @@
 package com.guans.widgets.ui
 
+import com.guans.widgets.data.ErrorLog
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -95,6 +96,7 @@ fun AppWithUpdates(request: DestinationRequest?, onAddToHome: (Destination) -> U
                 state = UpdateState.Idle
                 UpdateChecker.install(context, apk)
             } catch (e: Exception) {
+                ErrorLog.record(context, "update download", e)
                 state = UpdateState.Failed(release)
             }
         }

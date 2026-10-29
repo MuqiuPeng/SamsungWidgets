@@ -45,7 +45,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
-import com.guans.widgets.widgets.common.widgetSurface
+import com.guans.widgets.ui.Destination
+import com.guans.widgets.widgets.common.WidgetContainer
 import com.guans.widgets.data.changeDirection
 import com.guans.widgets.data.formatChange
 import com.guans.widgets.data.formatRate
@@ -113,17 +114,12 @@ private fun Content(state: Preferences) {
     val showChange = width >= 180.dp
     val upIsRed = upIsRed(context.resources.configuration.locales[0])
 
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .widgetSurface()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
+    WidgetContainer(Destination.ExchangeRate) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = context.getString(R.string.widget_title),
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
-                modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity<MainActivity>()),
+                modifier = GlanceModifier.defaultWeight(),
             )
             Text(
                 text = if (roomy || error != null || state[RateKeys.LOADING] == true) status else time.orEmpty(),

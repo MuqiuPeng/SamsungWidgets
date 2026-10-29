@@ -166,6 +166,9 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             }
         }
 
+        item { SectionHeader(stringResource(R.string.section_notifications), stringResource(R.string.notify_note)) }
+        item { NotificationSettings() }
+
         item { SectionHeader(stringResource(R.string.section_refresh), stringResource(R.string.github_refresh_note)) }
         item {
             RefreshChips(selected = refreshMinutes) { minutes ->

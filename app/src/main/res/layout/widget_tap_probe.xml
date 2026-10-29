@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 铺满小工具的透明点击层：点到空白处时，系统会把被点区域在屏幕上的位置一起传给应用，用来自动定位玻璃背景 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tap_probe"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />

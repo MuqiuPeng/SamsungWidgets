@@ -148,11 +148,11 @@
     <string name="widget_style_solid">Solid</string>
     <string name="glass_need_access">To blur your wallpaper behind the widgets, Toolbox needs to read the wallpaper. On Android 13 and later this is the \"All files access\" permission. Toolbox only reads the wallpaper and never uploads anything. Until then, widgets use a solid background.</string>
     <string name="glass_grant">Allow</string>
-    <string name="glass_position_hint">Android does not tell widgets where they are on the screen. Align each widget once so the blurred wallpaper behind it matches.</string>
+    <string name="glass_position_hint">Tap an empty spot on a widget (such as its title) and Toolbox picks up where it is on the screen automatically. You can also align it by hand here.</string>
     <string name="glass_no_widgets">No Toolbox widgets on your home screen yet.</string>
     <string name="glass_align">Align</string>
     <string name="glass_aligned">Aligned</string>
-    <string name="glass_not_aligned">Not aligned yet (assumed centered)</string>
+    <string name="glass_not_aligned">Not located yet: tap an empty spot on the widget</string>
     <string name="glass_drag_hint">Pick the grid your home screen uses, then drag the box to where this widget sits. It snaps to the grid when you let go, and is saved when you go back.</string>
     <string name="glass_grid">Home grid</string>
     <string name="drag_to_reorder">Drag to reorder</string>
@@ -196,4 +196,21 @@
     <string name="github_install_more">Install on another account or change repositories</string>
     <string name="github_unauthorized">Access to an account was revoked. Unlink it and link it again.</string>
     <string name="glass_inset">Widget margin (dp)</string>
+    <string name="section_error_log">Error log</string>
+    <string name="error_log_note">Crashes and background errors are kept on this phone. Share the log when reporting a problem; it contains no passwords or tokens.</string>
+    <string name="error_log_empty">No errors recorded</string>
+    <string name="error_log_count">%1$d entries</string>
+    <string name="error_log_share">Share</string>
+    <string name="error_log_clear">Clear</string>
+    <string name="glass_located">Glass background aligned to this widget</string>
+    <string name="glass_auto_located">Located automatically</string>
+    <string name="section_notifications">Notifications</string>
+    <string name="notify_note">Checked on each background refresh, so it only works while a GitHub widget is on your home screen.</string>
+    <string name="notify_actions">Actions failed or fixed</string>
+    <string name="notify_releases">New release</string>
+    <string name="notify_allow">Allow notifications</string>
+    <string name="notify_channel_github">GitHub repositories</string>
+    <string name="notify_ci_failed">%1$s: Actions failed</string>
+    <string name="notify_ci_fixed">%1$s: Actions passing again</string>
+    <string name="notify_release">%1$s released %2$s</string>
 </resources>

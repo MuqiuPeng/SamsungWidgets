@@ -1,5 +1,6 @@
 package com.guans.widgets.ui
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import com.guans.widgets.BuildConfig
 import com.guans.widgets.R
+import com.guans.widgets.data.ErrorLog
 import com.guans.widgets.data.Settings
 import com.guans.widgets.update.UpdateChecker
 import com.guans.widgets.widgets.common.redrawAllWidgets
@@ -66,6 +68,9 @@ fun AppSettingsScreen(contentPadding: PaddingValues, checkingUpdates: Boolean, o
             }
         }
 
+        item { SectionHeader(stringResource(R.string.section_error_log), stringResource(R.string.error_log_note)) }
+        item { ErrorLogCard() }
+
         item { SectionHeader(stringResource(R.string.section_about)) }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -78,6 +83,36 @@ fun AppSettingsScreen(contentPadding: PaddingValues, checkingUpdates: Boolean, o
                 ) {
                     Text(stringResource(R.string.about_source))
                 }
+            }
+        }
+    }
+}
+
+/** 错误日志：条数、分享（系统分享面板，纯文本）、清空。 */
+@Composable
+private fun ErrorLogCard() {
+    val context = LocalContext.current
+    var count by remember { mutableStateOf(ErrorLog.count(context)) }
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        ) {
+            Text(
+                if (count == 0) stringResource(R.string.error_log_empty) else stringResource(R.string.error_log_count, count),
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = { ErrorLog.clear(context); count = 0 }, enabled = count > 0) {
+                Text(stringResource(R.string.error_log_clear))
+            }
+            TextButton(onClick = {
+                val send = Intent(Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT, "Toolbox error log")
+                    .putExtra(Intent.EXTRA_TEXT, ErrorLog.report(context))
+                context.startActivity(Intent.createChooser(send, null))
+            }) {
+                Text(stringResource(R.string.error_log_share))
             }
         }
     }
