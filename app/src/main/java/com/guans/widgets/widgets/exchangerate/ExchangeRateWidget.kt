@@ -45,6 +45,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.guans.widgets.MainActivity
 import com.guans.widgets.R
+import com.guans.widgets.widgets.common.widgetSurface
 import com.guans.widgets.data.changeDirection
 import com.guans.widgets.data.formatChange
 import com.guans.widgets.data.formatRate
@@ -115,8 +116,7 @@ private fun Content(state: Preferences) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(24.dp)
+            .widgetSurface()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

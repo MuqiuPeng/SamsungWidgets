@@ -141,4 +141,8 @@
     <string name="routine_loop_hint_days">每 %1$d 天循环一次，新一轮开始时点一下对齐</string>
     <string name="routine_set_start">修改开始时间</string>
     <string name="routine_loop_restart">从现在开始新一轮</string>
+    <string name="section_widget_style">小工具背景</string>
+    <string name="widget_style_note">对桌面上所有 Toolbox 小工具生效。</string>
+    <string name="widget_style_glass">磨砂玻璃</string>
+    <string name="widget_style_solid">实色</string>
 </resources>

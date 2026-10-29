@@ -144,4 +144,8 @@
     <string name="routine_loop_hint_days">Repeats every %1$d days. Tap it when a new round starts.</string>
     <string name="routine_set_start">Change start time</string>
     <string name="routine_loop_restart">Start a new round now</string>
+    <string name="section_widget_style">Widget background</string>
+    <string name="widget_style_note">Applies to all Toolbox widgets on your home screen.</string>
+    <string name="widget_style_glass">Frosted glass</string>
+    <string name="widget_style_solid">Solid</string>
 </resources>

@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FF1F6FEB</color>
+
+    <!-- 小工具磨砂玻璃背景（浅色） -->
+    <color name="glass_fill">#8CF4F6FA</color>
+    <color name="glass_sheen">#59FFFFFF</color>
+    <color name="glass_stroke">#99FFFFFF</color>
 </resources>

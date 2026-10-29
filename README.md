@@ -15,7 +15,7 @@ App 左侧抽屉分两部分：**小工具**（各小工具的设置）和**设�
 | 习惯计时 | `app/src/main/java/com/guans/widgets/widgets/routine/` | 洗澡、护肤等事项距上次做过去了多久；做完点一下该事项即重新计时，5 分钟内可在右上角撤销；不设周期、不提醒，只显示过了多久；另有“循环倒计时”（Claude 5 小时额度、每周额度），显示距下次重置还剩多久和重置时刻，点一下即从现在开始新一轮；不联网，每 15 分钟重算一次 |
 
 汇率设置页（`ui/ExchangeRateScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔。
-设置页（`ui/AppSettingsScreen.kt`）：语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。
+设置页（`ui/AppSettingsScreen.kt`）：小工具背景（磨砂玻璃 / 实色，所有小工具共用，见 `widgets/common/WidgetSurface.kt`）、语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。
 习惯计时设置页（`ui/RoutineScreen.kt`）：从预设事项（个人护理、家务、健康、生活、循环倒计时五类）中选择添加，菜单里补记或修正上次时间（日期、时刻选择器）、撤销、排序、删除。
 文案在 `res/values`（英文）和 `res/values-zh`（中文）。
 
