@@ -4,9 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import com.guans.widgets.R
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
  * 可选的日常事项。id 写进存储，不要改；名字随语言变化。
@@ -160,11 +157,11 @@ object Routines {
     }
 }
 
-/** 小工具和设置页右侧显示的状态：普通事项是“多久之前”，倒计时是“还剩 4:24 · 19:20”。 */
+/** 小工具和设置页右侧显示的状态：普通事项是“多久之前”，倒计时是剩余时间“剩 4:24”。 */
 fun formatStatus(context: Context, routine: Routine, now: Long): String {
     if (!routine.preset.isLoop) return formatElapsed(context, routine.elapsed(now))
     val reset = routine.nextReset(now) ?: return context.getString(R.string.routine_loop_not_started)
-    return formatRemaining(context, reset - now) + " · " + formatClock(context, reset, now)
+    return formatRemaining(context, reset - now)
 }
 
 /** 剩余时间：一天以内 “4:24”（时:分），更久 “2 天 5 时”。 */
@@ -176,15 +173,6 @@ fun formatRemaining(context: Context, remaining: Long): String {
     } else {
         context.getString(R.string.routine_left_dh, (minutes / (24 * 60)).toInt(), (minutes / 60 % 24).toInt())
     }
-}
-
-/** 重置的时刻：当天只写时间，否则带星期。 */
-fun formatClock(context: Context, time: Long, now: Long): String {
-    val zone = ZoneId.systemDefault()
-    val at = Instant.ofEpochMilli(time).atZone(zone)
-    val sameDay = at.toLocalDate() == Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-    val locale = context.resources.configuration.locales[0]
-    return at.format(DateTimeFormatter.ofPattern(if (sameDay) "HH:mm" else "EEE HH:mm", locale))
 }
 
 /** “刚刚”“5 小时前”“2 天 3 小时前”“12 天前”；越久越粗略。 */
