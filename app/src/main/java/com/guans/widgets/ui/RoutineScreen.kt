@@ -59,6 +59,8 @@ import com.guans.widgets.data.Routine
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
 import com.guans.widgets.data.formatElapsed
+import com.guans.widgets.data.formatRemaining
+import com.guans.widgets.data.formatStatus
 import com.guans.widgets.widgets.routine.RoutineTicker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -213,7 +215,15 @@ private fun RoutineRow(
         headlineContent = { Text(stringResource(routine.preset.nameRes)) },
         supportingContent = {
             Column {
-                val last = if (routine.lastDone > 0) {
+                val started = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                val last = if (routine.preset.isLoop) {
+                    if (routine.lastDone > 0) {
+                        formatStatus(context, routine, now) + "\n" +
+                            stringResource(R.string.routine_loop_started, started.format(Date(routine.lastDone)))
+                    } else {
+                        formatStatus(context, routine, now)
+                    }
+                } else if (routine.lastDone > 0) {
                     formatElapsed(context, routine.elapsed(now)) + " · " +
                         DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(routine.lastDone))
                 } else {
@@ -225,13 +235,23 @@ private fun RoutineRow(
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onDone) {
-                    Icon(Icons.Default.Check, contentDescription = stringResource(R.string.routine_mark_done))
+                    Icon(
+                    Icons.Default.Check,
+                    contentDescription = stringResource(
+                        if (routine.preset.isLoop) R.string.routine_loop_restart else R.string.routine_mark_done,
+                    ),
+                )
                 }
                 IconButton(onClick = { menu = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.routine_set_time)) }, onClick = { menu = false; onSetTime() })
+                    DropdownMenuItem(
+                        text = {
+                            Text(stringResource(if (routine.preset.isLoop) R.string.routine_set_start else R.string.routine_set_time))
+                        },
+                        onClick = { menu = false; onSetTime() },
+                    )
                     if (routine.lastDone > 0) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.routine_undo)) }, onClick = { menu = false; onUndo() })
                     }
@@ -281,6 +301,11 @@ private fun RoutinePicker(existing: Set<RoutinePreset>, onDismiss: () -> Unit, o
                                 stringResource(preset.nameRes),
                                 color = if (taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             )
+                        },
+                        supportingContent = if (preset.isLoop) {
+                            { Text(loopHint(preset)) }
+                        } else {
+                            null
                         },
                         trailingContent = if (taken) {
                             { Text(stringResource(R.string.pair_exists), style = MaterialTheme.typography.labelMedium) }
@@ -347,4 +372,11 @@ private fun LastDonePicker(initial: Long, onDismiss: () -> Unit, onPicked: (Long
             dismissButton = { TextButton(onClick = { date = null }) { Text(stringResource(R.string.back)) } },
         )
     }
+}
+
+@Composable
+private fun loopHint(preset: RoutinePreset): String {
+    val hours = (preset.loopMs / 3_600_000L).toInt()
+    return if (hours % 24 == 0) stringResource(R.string.routine_loop_hint_days, hours / 24)
+    else stringResource(R.string.routine_loop_hint_hours, hours)
 }

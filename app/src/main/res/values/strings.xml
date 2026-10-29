@@ -133,4 +133,15 @@
     <string name="routine_pet_bath">Bathe pet</string>
     <string name="routine_car_wash">Wash car</string>
     <string name="routine_backup">Back up phone</string>
+    <string name="routine_cat_loop">Repeating countdown</string>
+    <string name="routine_claude_session">Claude 5h limit</string>
+    <string name="routine_claude_weekly">Claude weekly limit</string>
+    <string name="routine_loop_not_started">Tap to start</string>
+    <string name="routine_left_hm">%1$d:%2$02d left</string>
+    <string name="routine_left_dh">%1$dd %2$dh left</string>
+    <string name="routine_loop_started">This round started %1$s</string>
+    <string name="routine_loop_hint_hours">Repeats every %1$d hours. Tap it when a new round starts.</string>
+    <string name="routine_loop_hint_days">Repeats every %1$d days. Tap it when a new round starts.</string>
+    <string name="routine_set_start">Change start time</string>
+    <string name="routine_loop_restart">Start a new round now</string>
 </resources>

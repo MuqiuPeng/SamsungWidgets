@@ -130,4 +130,15 @@
     <string name="routine_pet_bath">给宠物洗澡</string>
     <string name="routine_car_wash">洗车</string>
     <string name="routine_backup">备份手机</string>
+    <string name="routine_cat_loop">循环倒计时</string>
+    <string name="routine_claude_session">Claude 5 小时额度</string>
+    <string name="routine_claude_weekly">Claude 每周额度</string>
+    <string name="routine_loop_not_started">点一下开始</string>
+    <string name="routine_left_hm">剩 %1$d:%2$02d</string>
+    <string name="routine_left_dh">剩 %1$d 天 %2$d 时</string>
+    <string name="routine_loop_started">本轮开始于 %1$s</string>
+    <string name="routine_loop_hint_hours">每 %1$d 小时循环一次，新一轮开始时点一下对齐</string>
+    <string name="routine_loop_hint_days">每 %1$d 天循环一次，新一轮开始时点一下对齐</string>
+    <string name="routine_set_start">修改开始时间</string>
+    <string name="routine_loop_restart">从现在开始新一轮</string>
 </resources>

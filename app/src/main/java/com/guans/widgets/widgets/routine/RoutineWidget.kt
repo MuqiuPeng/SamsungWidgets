@@ -41,7 +41,7 @@ import com.guans.widgets.MainActivity
 import com.guans.widgets.R
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
-import com.guans.widgets.data.formatElapsed
+import com.guans.widgets.data.formatStatus
 
 class RoutineWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -146,7 +146,7 @@ private fun Content(state: Preferences) {
                                 modifier = GlanceModifier.defaultWeight(),
                             )
                             Text(
-                                text = formatElapsed(context, elapsed),
+                                text = formatStatus(context, routine, now),
                                 style = TextStyle(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,

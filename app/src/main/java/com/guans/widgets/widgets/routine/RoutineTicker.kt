@@ -37,6 +37,7 @@ class RoutineTickWorker(context: Context, params: WorkerParameters) : CoroutineW
 object RoutineTicker {
     private const val PERIODIC = "routine_tick"
     private const val UNDO_EXPIRE = "routine_undo_expire"
+    private const val LOOP_RESET = "routine_loop_reset"
 
     fun schedule(context: Context) {
         val request = PeriodicWorkRequestBuilder<RoutineTickWorker>(15, TimeUnit.MINUTES).build()
@@ -55,6 +56,7 @@ object RoutineTicker {
         WorkManager.getInstance(context).apply {
             cancelUniqueWork(PERIODIC)
             cancelUniqueWork(UNDO_EXPIRE)
+            cancelUniqueWork(LOOP_RESET)
         }
     }
 
@@ -66,9 +68,20 @@ object RoutineTicker {
     suspend fun pushAll(context: Context) {
         val widget = RoutineWidget()
         val now = System.currentTimeMillis()
-        GlanceAppWidgetManager(context).getGlanceIds(RoutineWidget::class.java).forEach { id ->
+        val ids = GlanceAppWidgetManager(context).getGlanceIds(RoutineWidget::class.java)
+        ids.forEach { id ->
             updateAppWidgetState(context, id) { it[RoutineKeys.TICK] = now }
             widget.update(context, id)
         }
+        if (ids.isNotEmpty()) scheduleLoopReset(context, now)
+    }
+
+    /** 循环倒计时到点时立即重绘一次，不用等 15 分钟的定时任务。 */
+    private fun scheduleLoopReset(context: Context, now: Long) {
+        val next = Routines.all(context).mapNotNull { it.nextReset(now) }.minOrNull() ?: return
+        val request = OneTimeWorkRequestBuilder<RoutineTickWorker>()
+            .setInitialDelay(next - now + 2_000, TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(LOOP_RESET, ExistingWorkPolicy.REPLACE, request)
     }
 }
