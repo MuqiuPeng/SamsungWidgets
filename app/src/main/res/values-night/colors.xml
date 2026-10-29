@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- 小工具磨砂玻璃背景（深色） -->
-    <color name="glass_fill">#8C1E2026</color>
-    <color name="glass_sheen">#26FFFFFF</color>
-    <color name="glass_stroke">#40FFFFFF</color>
-</resources>

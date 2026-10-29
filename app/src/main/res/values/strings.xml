@@ -148,4 +148,12 @@
     <string name="widget_style_note">Applies to all Toolbox widgets on your home screen.</string>
     <string name="widget_style_glass">Frosted glass</string>
     <string name="widget_style_solid">Solid</string>
+    <string name="glass_need_access">To blur your wallpaper behind the widgets, Toolbox needs to read the wallpaper. On Android 13 and later this is the \"All files access\" permission. Toolbox only reads the wallpaper and never uploads anything. Until then, widgets use a solid background.</string>
+    <string name="glass_grant">Allow</string>
+    <string name="glass_position_hint">Android does not tell widgets where they are on the screen. Align each widget once so the blurred wallpaper behind it matches.</string>
+    <string name="glass_no_widgets">No Toolbox widgets on your home screen yet.</string>
+    <string name="glass_align">Align</string>
+    <string name="glass_aligned">Aligned</string>
+    <string name="glass_not_aligned">Not aligned yet (assumed centered)</string>
+    <string name="glass_drag_hint">Drag the box to where this widget sits on your home screen.</string>
 </resources>

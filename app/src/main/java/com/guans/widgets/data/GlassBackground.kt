@@ -1,0 +1,229 @@
+package com.guans.widgets.data
+
+import android.Manifest
+import android.app.WallpaperManager
+import android.appwidget.AppWidgetManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings as SystemSettings
+import android.util.DisplayMetrics
+import android.view.WindowManager
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
+import java.io.File
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+/**
+ * 磨砂玻璃背景：小工具拿不到身后的画面，所以自己读壁纸、整体高斯模糊，
+ * 再按用户对齐的位置裁出小工具背后那一块，叠一层半透明底色。
+ *
+ * - 读壁纸需要权限：Android 13 起是“所有文件访问”，之前是读取存储。
+ * - 桌面不会告诉小工具它在屏幕上的位置，位置由用户在设置页拖动对齐（屏幕比例坐标，存的是中心点）。
+ */
+object GlassBackground {
+    private const val PREFS = "glass"
+
+    /** 模糊在缩小后的壁纸上做：省内存，模糊后放大也看不出差别。 */
+    private const val SCALE = 1f / 6
+    private const val BLUR_RADIUS = 14
+    private const val CORNER_DP = 24f
+
+    // ---------- 权限
+
+    fun hasAccess(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Environment.isExternalStorageManager()
+    } else {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    /** Android 13+ 要跳到系统设置里打开“所有文件访问”；更早的版本走运行时权限。 */
+    val needsSettingsPage: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+    fun settingsIntent(context: Context): Intent =
+        Intent(SystemSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+
+    // ---------- 位置
+
+    data class Position(val centerX: Float, val centerY: Float)
+
+    fun position(context: Context, appWidgetId: Int): Position? {
+        val prefs = prefs(context)
+        if (!prefs.contains("x_$appWidgetId")) return null
+        return Position(prefs.getFloat("x_$appWidgetId", 0.5f), prefs.getFloat("y_$appWidgetId", 0.5f))
+    }
+
+    fun setPosition(context: Context, appWidgetId: Int, position: Position) {
+        prefs(context).edit()
+            .putFloat("x_$appWidgetId", position.centerX)
+            .putFloat("y_$appWidgetId", position.centerY)
+            .apply()
+    }
+
+    /** 小工具在竖屏下的大小（像素）。 */
+    fun widgetSizePx(context: Context, appWidgetId: Int): Pair<Int, Int> {
+        val options = AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
+        val density = context.resources.displayMetrics.density
+        val w = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+        val h = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 110)
+        return (w * density).roundToInt() to (h * density).roundToInt()
+    }
+
+    /** 整块屏幕（含状态栏、导航栏，壁纸铺满的范围），按竖屏算。 */
+    fun screenSizePx(context: Context): Pair<Int, Int> {
+        val windows = context.getSystemService(WindowManager::class.java)
+        val (w, h) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windows.maximumWindowMetrics.bounds.let { it.width() to it.height() }
+        } else {
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windows.defaultDisplay.getRealMetrics(metrics)
+            metrics.widthPixels to metrics.heightPixels
+        }
+        return minOf(w, h) to maxOf(w, h)
+    }
+
+    // ---------- 壁纸
+
+    /** 按屏幕比例裁好、模糊过的整张壁纸（缩小尺寸），壁纸没变就用缓存。 */
+    fun blurredWallpaper(context: Context): Bitmap? {
+        if (!hasAccess(context)) return null
+        val key = wallpaperKey(context) ?: return null
+        val file = File(context.filesDir, "glass/wallpaper.png")
+        val prefs = prefs(context)
+        if (file.exists() && prefs.getString("wallpaper_key", null) == key) {
+            BitmapFactory.decodeFile(file.path)?.let { return it }
+        }
+        val screen = screenWallpaper(context, SCALE) ?: return null
+        val blurred = gaussianBlur(screen, BLUR_RADIUS)
+        file.parentFile?.mkdirs()
+        file.outputStream().use { blurred.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        prefs.edit().putString("wallpaper_key", key).apply()
+        return blurred
+    }
+
+    /** 壁纸按屏幕比例居中裁剪铺满（和桌面显示方式一致），缩放到屏幕的 scale 倍。 */
+    fun screenWallpaper(context: Context, scale: Float): Bitmap? {
+        if (!hasAccess(context)) return null
+        val (screenW, screenH) = screenSizePx(context)
+        val width = max(1, (screenW * scale).roundToInt())
+        val height = max(1, (screenH * scale).roundToInt())
+        val wallpaper = runCatching { WallpaperManager.getInstance(context).drawable }.getOrNull() ?: return null
+        val source = wallpaper.toBitmap()
+        val fit = max(width.toFloat() / source.width, height.toFloat() / source.height)
+        val screen = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        Canvas(screen).apply {
+            translate((width - source.width * fit) / 2f, (height - source.height * fit) / 2f)
+            scale(fit, fit)
+            drawBitmap(source, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+        return screen
+    }
+
+    /** 某个小工具的背景：裁出背后那一块、叠底色、切圆角。没权限时返回 null。 */
+    fun backgroundFor(context: Context, appWidgetId: Int): Bitmap? {
+        val (widgetW, widgetH) = widgetSizePx(context, appWidgetId)
+        val (screenW, screenH) = screenSizePx(context)
+        val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
+        val position = position(context, appWidgetId) ?: Position(0.5f, 0.5f)
+        val wallpaperKey = wallpaperKey(context) ?: return null
+        val key = "$wallpaperKey|$widgetW|$widgetH|${position.centerX}|${position.centerY}|$night"
+
+        val file = File(context.filesDir, "glass/widget_$appWidgetId.png")
+        val prefs = prefs(context)
+        if (file.exists() && prefs.getString("key_$appWidgetId", null) == key) {
+            BitmapFactory.decodeFile(file.path)?.let { return it }
+        }
+        val wall = blurredWallpaper(context) ?: return null
+
+        val s = wall.width.toFloat() / screenW
+        val w = max(1, (widgetW * s).roundToInt()).coerceAtMost(wall.width)
+        val h = max(1, (widgetH * s).roundToInt()).coerceAtMost(wall.height)
+        val left = (position.centerX * wall.width - w / 2f).roundToInt().coerceIn(0, wall.width - w)
+        val top = (position.centerY * wall.height - h / 2f).roundToInt().coerceIn(0, wall.height - h)
+
+        // 输出比裁剪区大一些，让圆角边缘平滑
+        val upscale = 3
+        val out = Bitmap.createBitmap(w * upscale, h * upscale, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val rect = RectF(0f, 0f, out.width.toFloat(), out.height.toFloat())
+        val radius = CORNER_DP * context.resources.displayMetrics.density * s * upscale
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        canvas.drawRoundRect(rect, radius, radius, paint)
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(Bitmap.createBitmap(wall, left, top, w, h), null, rect, paint)
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+        paint.color = if (night) 0x8C1C1D22.toInt() else 0x80F7F8FA.toInt()
+        canvas.drawRect(rect, paint)
+
+        file.parentFile?.mkdirs()
+        file.outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        prefs.edit().putString("key_$appWidgetId", key).apply()
+        return out
+    }
+
+    /** 壁纸换了 key 就变；没权限时返回 null。拿不到壁纸 id 时退回按小时更新。 */
+    private fun wallpaperKey(context: Context): String? {
+        if (!hasAccess(context)) return null
+        val id = runCatching { WallpaperManager.getInstance(context).getWallpaperId(WallpaperManager.FLAG_SYSTEM) }
+            .getOrNull() ?: "h${System.currentTimeMillis() / 3_600_000}"
+        val (w, h) = screenSizePx(context)
+        return "$id|$w|$h"
+    }
+
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** 三次盒式模糊，效果接近高斯模糊。 */
+    fun gaussianBlur(source: Bitmap, radius: Int): Bitmap {
+        val w = source.width
+        val h = source.height
+        val pixels = IntArray(w * h)
+        source.getPixels(pixels, 0, w, 0, 0, w, h)
+        val buffer = IntArray(w * h)
+        val box = max(1, radius / 2)
+        repeat(3) {
+            boxBlur(pixels, buffer, w, h, box, horizontal = true)
+            boxBlur(buffer, pixels, w, h, box, horizontal = false)
+        }
+        return Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
+    }
+
+    private fun boxBlur(src: IntArray, dst: IntArray, w: Int, h: Int, r: Int, horizontal: Boolean) {
+        val lines = if (horizontal) h else w
+        val length = if (horizontal) w else h
+        val span = 2 * r + 1
+        for (line in 0 until lines) {
+            fun index(i: Int): Int {
+                val c = i.coerceIn(0, length - 1)
+                return if (horizontal) line * w + c else c * w + line
+            }
+            var sr = 0; var sg = 0; var sb = 0
+            for (i in -r..r) {
+                val p = src[index(i)]
+                sr += p shr 16 and 0xFF; sg += p shr 8 and 0xFF; sb += p and 0xFF
+            }
+            for (i in 0 until length) {
+                dst[index(i)] = (0xFF shl 24) or ((sr / span) shl 16) or ((sg / span) shl 8) or (sb / span)
+                val add = src[index(i + r + 1)]
+                val remove = src[index(i - r)]
+                sr += (add shr 16 and 0xFF) - (remove shr 16 and 0xFF)
+                sg += (add shr 8 and 0xFF) - (remove shr 8 and 0xFF)
+                sb += (add and 0xFF) - (remove and 0xFF)
+            }
+        }
+    }
+}

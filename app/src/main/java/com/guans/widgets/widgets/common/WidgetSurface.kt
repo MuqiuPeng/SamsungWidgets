@@ -8,23 +8,33 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.LocalGlanceId
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.ContentScale
-import com.guans.widgets.R
+import com.guans.widgets.data.GlassBackground
 import com.guans.widgets.data.Settings
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidget
 import com.guans.widgets.widgets.routine.RoutineWidget
 
-/** 所有小工具共用的背景：磨砂玻璃或实色，由设置页的“小工具背景”决定。 */
+/**
+ * 所有小工具共用的背景，由设置页的“小工具背景”决定：
+ * 磨砂玻璃 = 壁纸模糊后裁出小工具背后那一块；还没授权读壁纸时退回实色。
+ */
 @Composable
 fun GlanceModifier.widgetSurface(): GlanceModifier {
-    val glass = Settings.glassBackground(LocalContext.current)
-    val base = if (glass) {
-        background(ImageProvider(R.drawable.widget_glass), ContentScale.FillBounds)
+    val context = LocalContext.current
+    val glass = if (Settings.glassBackground(context)) {
+        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(LocalGlanceId.current)
+        runCatching { GlassBackground.backgroundFor(context, appWidgetId) }.getOrNull()
+    } else {
+        null
+    }
+    val base = if (glass != null) {
+        background(ImageProvider(glass), ContentScale.FillBounds)
     } else {
         background(GlanceTheme.colors.widgetBackground)
     }
@@ -33,7 +43,7 @@ fun GlanceModifier.widgetSurface(): GlanceModifier {
 
 private val STYLE_CHANGED = longPreferencesKey("style_changed")
 
-/** 背景样式变化后重绘桌面上的所有小工具。 */
+/** 背景样式、位置或权限变化后重绘桌面上的所有小工具。 */
 suspend fun redrawAllWidgets(context: Context) {
     val now = System.currentTimeMillis()
     listOf<GlanceAppWidget>(ExchangeRateWidget(), RoutineWidget()).forEach { widget ->
