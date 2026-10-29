@@ -13,6 +13,7 @@ App 左侧抽屉分两部分：**小工具**（各小工具的设置）和**设�
 | --- | --- | --- |
 | 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率及较前一日涨跌（中文红涨绿跌，英文绿涨红跌）；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
 | 习惯计时 | `app/src/main/java/com/guans/widgets/widgets/routine/` | 洗澡、护肤等事项距上次做过去了多久；做完点一下该事项即重新计时，5 分钟内可在右上角撤销；不设周期、不提醒，只显示过了多久；另有“循环倒计时”（Claude 5 小时额度、每周额度），显示距下次重置还剩多久，条目底色随本轮进度逐渐变红，点一下即从现在开始新一轮；不联网，每 15 分钟重算一次 |
+| GitHub 仓库 | `app/src/main/java/com/guans/widgets/widgets/github/` | 所选公开仓库的最新 Release、最近一次 Actions 结果（✓ 通过 / ✕ 失败 / ● 运行中）、最近推送时间和未关闭 Issue 数；点仓库在浏览器打开；按设置间隔刷新，请求带 ETag，数据没变时不占 GitHub 匿名限额 |
 
 汇率设置页（`ui/ExchangeRateScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，拖动行首六点手柄排序，菜单里反转、删除；选择刷新间隔。
 设置页（`ui/AppSettingsScreen.kt`）：小工具背景（磨砂玻璃 / 实色，所有小工具共用。磨砂玻璃读取壁纸做高斯模糊，按用户拖动对齐的位置裁出小工具背后的一块，需要读壁纸权限；见 `data/GlassBackground.kt`、`ui/GlassSettings.kt`）、语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。
@@ -29,14 +30,18 @@ app/src/main/java/com/guans/widgets/
 ├── data/
 │   ├── Currencies.kt               可选货币、本地化名称
 │   ├── Settings.kt                 货币对与刷新间隔
+│   ├── GitHub.kt                   GitHub 公开 API（仓库、Release、Actions，带 ETag 缓存）
 │   ├── Routines.kt                 习惯计时：预设事项、每项上次完成的时间
 │   └── RateRepository.kt           汇率数据源（多源回退，统一换算成 USD 基准表）
 ├── widgets/exchangerate/
 │   ├── ExchangeRateWidget.kt       Glance 界面、receiver、刷新按钮
 │   └── RateUpdater.kt              拉取并推送到所有实例、WorkManager 定时任务
-└── widgets/routine/
-    ├── RoutineWidget.kt            Glance 界面、点击记录与撤销
-    └── RoutineTicker.kt            定时重绘“多久之前”
+├── widgets/routine/
+│   ├── RoutineWidget.kt            Glance 界面、点击记录与撤销
+│   └── RoutineTicker.kt            定时重绘“多久之前”
+└── widgets/github/
+    ├── GitHubWidget.kt             Glance 界面、刷新按钮
+    └── GitHubUpdater.kt            拉取、推送、WorkManager 定时任务
 ```
 
 ## 免费汇率 API 调研（2026-10-29 实测）

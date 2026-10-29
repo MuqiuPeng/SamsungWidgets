@@ -18,6 +18,7 @@ import androidx.glance.layout.ContentScale
 import com.guans.widgets.data.GlassBackground
 import com.guans.widgets.data.Settings
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidget
+import com.guans.widgets.widgets.github.GitHubWidget
 import com.guans.widgets.widgets.routine.RoutineWidget
 
 /**
@@ -46,7 +47,7 @@ private val STYLE_CHANGED = longPreferencesKey("style_changed")
 /** 背景样式、位置或权限变化后重绘桌面上的所有小工具。 */
 suspend fun redrawAllWidgets(context: Context) {
     val now = System.currentTimeMillis()
-    listOf<GlanceAppWidget>(ExchangeRateWidget(), RoutineWidget()).forEach { widget ->
+    listOf<GlanceAppWidget>(ExchangeRateWidget(), RoutineWidget(), GitHubWidget()).forEach { widget ->
         GlanceAppWidgetManager(context).getGlanceIds(widget.javaClass).forEach { id ->
             // 改动实例状态，确保已在运行的小工具也会重新组合
             updateAppWidgetState(context, id) { it[STYLE_CHANGED] = now }

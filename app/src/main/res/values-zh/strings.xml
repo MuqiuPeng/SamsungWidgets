@@ -55,7 +55,7 @@
     <!-- 关于与更新 -->
     <string name="section_updates">更新</string>
     <string name="update_auto_note">每次打开 Toolbox 都会自动检查新版本。</string>
-    <string name="about_text">Toolbox 是一组桌面小工具，适用于三星（One UI）及其他 Android 手机。在桌面的小组件列表中添加，在这里进行设置。\n\n汇率：数据来自免费公开数据源（Coinbase，失败时依次使用 currency-api、ExchangeRate-API），为中间价参考，并非银行或交易报价。\n\n习惯计时：记录每件事上次完成的时间，只保存在本机，不联网。</string>
+    <string name="about_text">Toolbox 是一组桌面小工具，适用于三星（One UI）及其他 Android 手机。在桌面的小组件列表中添加，在这里进行设置。\n\n汇率：数据来自免费公开数据源（Coinbase，失败时依次使用 currency-api、ExchangeRate-API），为中间价参考，并非银行或交易报价。\n\n习惯计时：记录每件事上次完成的时间，只保存在本机，不联网。\n\nGitHub 仓库：不登录，通过 GitHub API 读取公开数据。</string>
     <string name="about_source">GitHub 上的源代码</string>
     <string name="section_about">关于</string>
     <string name="version_label">版本 %1$s</string>
@@ -153,4 +153,27 @@
     <string name="glass_drag_hint">选和桌面设置一致的网格，把方框拖到这个小工具在桌面上的位置，松手会自动吸附到格子上。</string>
     <string name="glass_grid">桌面网格</string>
     <string name="drag_to_reorder">拖动排序</string>
+    <!-- GitHub 小工具 -->
+    <string name="widget_github_name">GitHub 仓库</string>
+    <string name="widget_github_desc">显示仓库的最新 Release、Actions 状态和最近动态</string>
+    <string name="github_widget_title">GitHub</string>
+    <string name="github_widget_empty">还没有仓库，点这里添加</string>
+    <string name="github_rate_limited">已达限额</string>
+    <string name="github_rate_limited_long">已达到 GitHub 匿名请求的每小时限额，一小时内会恢复。</string>
+    <string name="github_pushed">%1$s推送</string>
+    <string name="github_issues">%1$d 个未关闭</string>
+    <string name="github_updated">%1$s更新</string>
+    <string name="github_refresh_note">数据没变化时不计入 GitHub 的每小时限额，刷新勤一些也没关系。</string>
+    <string name="github_settings_title">GitHub 仓库</string>
+    <string name="section_repos">仓库</string>
+    <string name="repos_hint">%1$s 的公开仓库。点小工具上的仓库可在 GitHub 打开。</string>
+    <string name="repos_empty">还没有仓库，点下方添加</string>
+    <string name="add_repo">添加仓库</string>
+    <string name="repos_limit">最多 %1$d 个仓库</string>
+    <string name="pick_repo">%1$s 的仓库</string>
+    <string name="repos_load_failed">仓库列表加载失败，请检查网络后重试。</string>
+    <string name="ci_success">Actions 通过</string>
+    <string name="ci_failure">Actions 失败</string>
+    <string name="ci_running">Actions 运行中</string>
+    <string name="ci_none">无 Actions</string>
 </resources>

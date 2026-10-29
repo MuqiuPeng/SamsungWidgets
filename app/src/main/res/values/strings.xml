@@ -58,7 +58,7 @@
     <!-- 关于与更新 -->
     <string name="section_updates">Updates</string>
     <string name="update_auto_note">Toolbox checks for a new version each time it opens.</string>
-    <string name="about_text">Toolbox is a set of home-screen widgets for Samsung (One UI) and other Android phones. Add them from the widget list on your home screen, and set them up here.\n\nExchange rate: rates come from free public sources (Coinbase, falling back to currency-api and ExchangeRate-API). They are mid-market reference rates, not bank or trading quotes.\n\nRoutine timer: records when you last did each routine. Stored only on this phone, never sent anywhere.</string>
+    <string name="about_text">Toolbox is a set of home-screen widgets for Samsung (One UI) and other Android phones. Add them from the widget list on your home screen, and set them up here.\n\nExchange rate: rates come from free public sources (Coinbase, falling back to currency-api and ExchangeRate-API). They are mid-market reference rates, not bank or trading quotes.\n\nRoutine timer: records when you last did each routine. Stored only on this phone, never sent anywhere.\n\nGitHub repos: reads public data from the GitHub API without signing in.</string>
     <string name="about_source">Source code on GitHub</string>
     <string name="section_about">About</string>
     <string name="version_label">Version %1$s</string>
@@ -156,4 +156,27 @@
     <string name="glass_drag_hint">Pick the grid your home screen uses, then drag the box to where this widget sits. It snaps to the grid when you let go.</string>
     <string name="glass_grid">Home grid</string>
     <string name="drag_to_reorder">Drag to reorder</string>
+    <!-- GitHub 小工具 -->
+    <string name="widget_github_name">GitHub repos</string>
+    <string name="widget_github_desc">Latest release, Actions status and activity of your repositories</string>
+    <string name="github_widget_title">GitHub</string>
+    <string name="github_widget_empty">No repositories yet. Tap to add some.</string>
+    <string name="github_rate_limited">Rate limited</string>
+    <string name="github_rate_limited_long">GitHub\'s hourly limit for anonymous requests was reached. It resets within an hour.</string>
+    <string name="github_pushed">pushed %1$s</string>
+    <string name="github_issues">%1$d open</string>
+    <string name="github_updated">Updated %1$s</string>
+    <string name="github_refresh_note">Unchanged data doesn\'t count against GitHub\'s hourly limit, so frequent refreshes are fine.</string>
+    <string name="github_settings_title">GitHub repos</string>
+    <string name="section_repos">Repositories</string>
+    <string name="repos_hint">Public repositories of %1$s. Tap a repository on the widget to open it on GitHub.</string>
+    <string name="repos_empty">No repositories yet. Add one below.</string>
+    <string name="add_repo">Add repository</string>
+    <string name="repos_limit">Up to %1$d repositories</string>
+    <string name="pick_repo">Repositories of %1$s</string>
+    <string name="repos_load_failed">Couldn\'t load repositories. Check your connection and try again.</string>
+    <string name="ci_success">Actions passed</string>
+    <string name="ci_failure">Actions failed</string>
+    <string name="ci_running">Actions running</string>
+    <string name="ci_none">No Actions</string>
 </resources>

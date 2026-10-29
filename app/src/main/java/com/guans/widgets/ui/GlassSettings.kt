@@ -69,6 +69,7 @@ import com.guans.widgets.data.GlassBackground
 import com.guans.widgets.data.HomeGrid
 import com.guans.widgets.widgets.common.redrawAllWidgets
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidgetReceiver
+import com.guans.widgets.widgets.github.GitHubWidgetReceiver
 import com.guans.widgets.widgets.routine.RoutineWidgetReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -179,7 +180,8 @@ private fun placedWidgets(context: android.content.Context): List<PlacedWidget> 
         return ids.mapIndexed { i, id -> PlacedWidget(id, if (ids.size > 1) "$name ${i + 1}" else name) }
     }
     return of(ExchangeRateWidgetReceiver::class.java, context.getString(R.string.widget_exchange_rate_name)) +
-        of(RoutineWidgetReceiver::class.java, context.getString(R.string.widget_routine_name))
+        of(RoutineWidgetReceiver::class.java, context.getString(R.string.widget_routine_name)) +
+        of(GitHubWidgetReceiver::class.java, context.getString(R.string.widget_github_name))
 }
 
 /** 在壁纸缩略图上拖动方框，对齐到小工具在桌面上的位置。 */

@@ -19,6 +19,8 @@ import com.guans.widgets.ui.Destination
 import com.guans.widgets.ui.DestinationRequest
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidget
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidgetReceiver
+import com.guans.widgets.widgets.github.GitHubUpdater
+import com.guans.widgets.widgets.github.GitHubWidgetReceiver
 import com.guans.widgets.widgets.routine.RoutineTicker
 import com.guans.widgets.widgets.routine.RoutineWidgetReceiver
 import kotlinx.coroutines.launch
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             ExchangeRateWidget().updateAll(applicationContext)
             RoutineTicker.pushAll(applicationContext)
+            GitHubUpdater.push(applicationContext)
         }
         // 老版本升级上来时补上定时重绘
         if (RoutineTicker.hasWidgets(this)) RoutineTicker.schedule(this)
@@ -61,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private fun requestPin(destination: Destination) {
         val receiver = when (destination) {
             Destination.Routines -> RoutineWidgetReceiver::class.java
+            Destination.GitHub -> GitHubWidgetReceiver::class.java
             else -> ExchangeRateWidgetReceiver::class.java
         }
         val manager = getSystemService(AppWidgetManager::class.java)

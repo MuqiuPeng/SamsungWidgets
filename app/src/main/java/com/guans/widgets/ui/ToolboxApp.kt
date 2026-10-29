@@ -36,9 +36,9 @@ import com.guans.widgets.R
 import kotlinx.coroutines.launch
 
 /** 抽屉里的页面。新增小工具时在 WIDGETS 里加一项。 */
-enum class Destination { ExchangeRate, Routines, Settings }
+enum class Destination { ExchangeRate, Routines, GitHub, Settings }
 
-private val WIDGETS = listOf(Destination.ExchangeRate, Destination.Routines)
+private val WIDGETS = listOf(Destination.ExchangeRate, Destination.Routines, Destination.GitHub)
 
 /** 从小工具打开时要跳到的页面；id 不同才算新的请求。 */
 data class DestinationRequest(val destination: Destination, val id: Long = System.nanoTime())
@@ -125,6 +125,7 @@ fun ToolboxApp(
             when (destination) {
                 Destination.ExchangeRate -> ExchangeRateScreen(padding) { onAddToHome(Destination.ExchangeRate) }
                 Destination.Routines -> RoutineScreen(padding) { onAddToHome(Destination.Routines) }
+                Destination.GitHub -> GitHubScreen(padding) { onAddToHome(Destination.GitHub) }
                 Destination.Settings -> AppSettingsScreen(padding, checkingUpdates, onCheckUpdates)
             }
         }
@@ -135,11 +136,13 @@ fun ToolboxApp(
 private fun title(destination: Destination): String = when (destination) {
     Destination.ExchangeRate -> stringResource(R.string.settings_title)
     Destination.Routines -> stringResource(R.string.routine_settings_title)
+    Destination.GitHub -> stringResource(R.string.github_settings_title)
     Destination.Settings -> stringResource(R.string.nav_settings)
 }
 
 private fun icon(widget: Destination): Int = when (widget) {
     Destination.Routines -> R.drawable.ic_routine
+    Destination.GitHub -> R.drawable.ic_code
     else -> R.drawable.ic_exchange
 }
 
