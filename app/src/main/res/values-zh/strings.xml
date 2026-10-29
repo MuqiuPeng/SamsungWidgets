@@ -55,7 +55,7 @@
     <!-- 关于与更新 -->
     <string name="section_updates">更新</string>
     <string name="update_auto_note">每次打开 Toolbox 都会自动检查新版本。</string>
-    <string name="about_text">Toolbox 是一组桌面小工具，适用于三星（One UI）及其他 Android 手机。在桌面的小组件列表中添加，在这里进行设置。\n\n汇率：数据来自免费公开数据源（Coinbase，失败时依次使用 currency-api、ExchangeRate-API），为中间价参考，并非银行或交易报价。\n\n习惯计时：记录每件事上次完成的时间，只保存在本机，不联网。\n\nGitHub 仓库：不登录，通过 GitHub API 读取公开数据。</string>
+    <string name="about_text">Toolbox 是一组桌面小工具，适用于三星（One UI）及其他 Android 手机。在桌面的小组件列表中添加，在这里进行设置。\n\n汇率：数据来自免费公开数据源（Coinbase，失败时依次使用 currency-api、ExchangeRate-API），为中间价参考，并非银行或交易报价。\n\n习惯计时：记录每件事上次完成的时间，只保存在本机，不联网。\n\nGitHub 仓库：通过你关联的 GitHub 账号读取仓库状态（只读权限）。</string>
     <string name="about_source">GitHub 上的源代码</string>
     <string name="section_about">关于</string>
     <string name="version_label">版本 %1$s</string>
@@ -166,14 +166,30 @@
     <string name="github_refresh_note">数据没变化时不计入 GitHub 的每小时限额，刷新勤一些也没关系。</string>
     <string name="github_settings_title">GitHub 仓库</string>
     <string name="section_repos">仓库</string>
-    <string name="repos_hint">%1$s 的公开仓库。点小工具上的仓库可在 GitHub 打开。</string>
+    <string name="repos_hint">来自已关联账号的仓库（含私有）。点小工具上的仓库可在 GitHub 打开。</string>
     <string name="repos_empty">还没有仓库，点下方添加</string>
     <string name="add_repo">添加仓库</string>
     <string name="repos_limit">最多 %1$d 个仓库</string>
-    <string name="pick_repo">%1$s 的仓库</string>
+    <string name="pick_repo">选择仓库</string>
     <string name="repos_load_failed">仓库列表加载失败，请检查网络后重试。</string>
     <string name="ci_success">Actions 通过</string>
     <string name="ci_failure">Actions 失败</string>
     <string name="ci_running">Actions 运行中</string>
     <string name="ci_none">无 Actions</string>
+    <string name="section_accounts">账号</string>
+    <string name="accounts_hint">关联要监听的 GitHub 账号。Toolbox 只有只读权限，令牌加密保存在本机。</string>
+    <string name="github_link">关联 GitHub 账号</string>
+    <string name="github_unlink">取消关联</string>
+    <string name="github_link_steps">点“打开 GitHub”，输入下面的验证码（已复制）。请先在浏览器里登录要关联的账号。</string>
+    <string name="github_link_waiting">等待你在 GitHub 上确认…</string>
+    <string name="github_open_page">打开 GitHub</string>
+    <string name="github_retry">重试</string>
+    <string name="github_link_denied">已拒绝授权。</string>
+    <string name="github_link_expired">验证码已过期，请重试。</string>
+    <string name="github_link_failed">关联失败，请检查网络后重试。</string>
+    <string name="github_not_configured">这个版本还没有配置 GitHub 登录。</string>
+    <string name="github_not_installed">这个账号还没安装 Toolbox，看不到它的仓库。安装时选择要共享的仓库即可。</string>
+    <string name="github_install">去 GitHub 安装</string>
+    <string name="github_install_more">安装到其他账号或修改可见仓库</string>
+    <string name="github_unauthorized">有账号的授权已失效，请取消关联后重新关联。</string>
 </resources>

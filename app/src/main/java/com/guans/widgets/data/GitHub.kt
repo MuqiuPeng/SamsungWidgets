@@ -2,7 +2,6 @@ package com.guans.widgets.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.guans.widgets.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -52,9 +51,12 @@ data class RepoStatus(
 }
 
 /**
- * GitHub 公开 API，不登录：每个 IP 每小时 60 次。
+ * GitHub API。仓库通过关联的账号读取（见 GitHubAuth），可以看私有仓库，每小时 5000 次；
+ * 没关联账号的条目按公开仓库匿名读取（每小时 60 次）。
  * 每个仓库查 3 个接口（仓库信息、最新 Release、最近一次 Actions），都带 ETag；
  * 没变化时 GitHub 返回 304，不计入次数，所以定时刷新基本不耗额度。
+ *
+ * 选中的仓库存成 "owner/repo@login"，login 是用来读取它的账号。
  */
 object GitHub {
     private const val PREFS = "github"
@@ -65,13 +67,20 @@ object GitHub {
 
     fun prefs(context: Context): SharedPreferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** 账号默认取本应用仓库的所有者。 */
-    fun account(context: Context): String =
-        prefs(context).getString("account", null) ?: UpdateChecker.REPO.substringBefore('/')
-
     fun repos(context: Context): List<String> {
-        val raw = prefs(context).getString("repos", null) ?: return listOf(UpdateChecker.REPO)
+        val raw = prefs(context).getString("repos", null) ?: return emptyList()
         return raw.split(',').filter { it.contains('/') }
+    }
+
+    fun entry(fullName: String, login: String) = "$fullName@$login"
+
+    fun fullName(entry: String) = entry.substringBefore('@')
+
+    private fun login(entry: String) = entry.substringAfter('@', "").ifEmpty { null }
+
+    /** 账号取消关联后，去掉通过它添加的仓库。 */
+    fun removeAccountRepos(context: Context, login: String) {
+        setRepos(context, repos(context).filter { login(it) != login })
     }
 
     fun setRepos(context: Context, repos: List<String>) {
@@ -93,7 +102,7 @@ object GitHub {
         val array = runCatching { JSONArray(prefs.getString("statuses", "[]")) }.getOrDefault(JSONArray())
         val byName = (0 until array.length()).map { RepoStatus.fromJson(array.getJSONObject(it)) }.associateBy { it.fullName }
         // 按当前设置的顺序，只显示还在列表里的仓库
-        val statuses = repos(context).mapNotNull { byName[it] }
+        val statuses = repos(context).mapNotNull { byName[fullName(it)] }
         return Cached(statuses, prefs.getLong("updated_at", 0L), prefs.getString("error", null))
     }
 
@@ -101,10 +110,10 @@ object GitHub {
     suspend fun refresh(context: Context) = withContext(Dispatchers.IO) {
         val previous = cached(context).statuses.associateBy { it.fullName }
         var error: String? = null
-        val statuses = repos(context).mapNotNull { repo ->
-            runCatching { fetchStatus(context, repo) }
+        val statuses = repos(context).mapNotNull { entry ->
+            runCatching { fetchStatus(context, entry) }
                 .onFailure { error = it.message ?: it.javaClass.simpleName }
-                .getOrNull() ?: previous[repo]
+                .getOrNull() ?: previous[fullName(entry)]
         }
         prefs(context).edit()
             .putString("statuses", JSONArray(statuses.map { it.toJson() }).toString())
@@ -113,17 +122,19 @@ object GitHub {
             .apply()
     }
 
-    /** 账号下的公开仓库，按最近推送排序，供设置页选择。 */
-    suspend fun listRepos(context: Context, account: String = account(context)): List<String> = withContext(Dispatchers.IO) {
-        val array = JSONArray(get(context, "https://api.github.com/users/$account/repos?per_page=100&sort=pushed")!!)
+    /** 账号能看到的仓库（含私有，需在该账号上安装了 GitHub App），按最近推送排序，供设置页选择。 */
+    suspend fun listRepos(context: Context, account: GitHubAuth.Account): List<String> = withContext(Dispatchers.IO) {
+        val array = JSONArray(get(context, "https://api.github.com/user/repos?per_page=100&sort=pushed", account)!!)
         (0 until array.length()).map { array.getJSONObject(it).getString("full_name") }
     }
 
-    private fun fetchStatus(context: Context, repo: String): RepoStatus {
-        val info = JSONObject(get(context, "https://api.github.com/repos/$repo")!!)
-        val release = get(context, "https://api.github.com/repos/$repo/releases/latest", allowMissing = true)
+    private fun fetchStatus(context: Context, entry: String): RepoStatus {
+        val repo = fullName(entry)
+        val account = login(entry)?.let { GitHubAuth.account(context, it) ?: error("unauthorized") }
+        val info = JSONObject(get(context, "https://api.github.com/repos/$repo", account)!!)
+        val release = get(context, "https://api.github.com/repos/$repo/releases/latest", account, allowMissing = true)
             ?.let(::JSONObject)
-        val runs = JSONObject(get(context, "https://api.github.com/repos/$repo/actions/runs?per_page=1")!!)
+        val runs = JSONObject(get(context, "https://api.github.com/repos/$repo/actions/runs?per_page=1", account)!!)
             .optJSONArray("workflow_runs")
         val run = if (runs != null && runs.length() > 0) runs.getJSONObject(0) else null
         val ci = when {
@@ -149,24 +160,46 @@ object GitHub {
     private fun time(iso: String?): Long =
         iso?.takeIf { it.isNotEmpty() && it != "null" }?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() } ?: 0L
 
-    /** 带 ETag 的 GET：304 时用本地缓存的响应。allowMissing 时 404 返回 null（比如没有 Release）。 */
-    private fun get(context: Context, url: String, allowMissing: Boolean = false): String? {
-        val etags = context.getSharedPreferences("github_etag", Context.MODE_PRIVATE)
+    /** 不带缓存的 GET（用于关联账号时查用户名）。 */
+    fun request(url: String, token: String): String {
+        val conn = open(url, token)
+        try {
+            if (conn.responseCode !in 200..299) error("HTTP ${conn.responseCode}: $url")
+            return conn.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun open(url: String, token: String?): HttpURLConnection {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 10_000
         conn.readTimeout = 10_000
         conn.setRequestProperty("User-Agent", "Toolbox")
         conn.setRequestProperty("Accept", "application/vnd.github+json")
-        val cachedBody = etags.getString("body:$url", null)
-        etags.getString("etag:$url", null)?.takeIf { cachedBody != null }?.let { conn.setRequestProperty("If-None-Match", it) }
+        if (token != null) conn.setRequestProperty("Authorization", "Bearer $token")
+        return conn
+    }
+
+    /**
+     * 带 ETag 的 GET：304 时用本地缓存的响应。allowMissing 时 404 返回 null（比如没有 Release）。
+     * 缓存按账号分开，不同账号看到的内容可能不同。
+     */
+    private fun get(context: Context, url: String, account: GitHubAuth.Account?, allowMissing: Boolean = false): String? {
+        val etags = context.getSharedPreferences("github_etag", Context.MODE_PRIVATE)
+        val conn = open(url, account?.token)
+        val cacheKey = "${account?.login.orEmpty()}|$url"
+        val cachedBody = etags.getString("body:$cacheKey", null)
+        etags.getString("etag:$cacheKey", null)?.takeIf { cachedBody != null }?.let { conn.setRequestProperty("If-None-Match", it) }
         try {
             return when (val code = conn.responseCode) {
                 304 -> cachedBody
                 in 200..299 -> {
                     val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    conn.getHeaderField("ETag")?.let { etags.edit().putString("etag:$url", it).putString("body:$url", body).apply() }
+                    conn.getHeaderField("ETag")?.let { etags.edit().putString("etag:$cacheKey", it).putString("body:$cacheKey", body).apply() }
                     body
                 }
+                401 -> error("unauthorized")
                 404 -> if (allowMissing) null else error("HTTP 404: $url")
                 403, 429 -> error("rate_limited")
                 else -> error("HTTP $code: $url")

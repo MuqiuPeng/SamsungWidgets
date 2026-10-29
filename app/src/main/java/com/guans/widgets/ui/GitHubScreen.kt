@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.guans.widgets.R
 import com.guans.widgets.data.CiState
 import com.guans.widgets.data.GitHub
+import com.guans.widgets.data.GitHubAuth
 import com.guans.widgets.data.RepoStatus
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.widgets.github.GitHubScheduler
@@ -70,6 +71,8 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var cache by remember { mutableStateOf(GitHub.cached(context)) }
     var refreshMinutes by remember { mutableIntStateOf(GitHub.refreshMinutes(context)) }
     var picking by remember { mutableStateOf(false) }
+    var linking by remember { mutableStateOf(false) }
+    var accounts by remember { mutableStateOf(GitHubAuth.accounts(context).map { it.login }) }
 
     // 后台刷新写入缓存后，页面跟着更新
     DisposableEffect(Unit) {
@@ -89,12 +92,22 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     val now = System.currentTimeMillis()
 
     LazyColumn(contentPadding = screenPadding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { SectionHeader(stringResource(R.string.section_accounts), stringResource(R.string.accounts_hint)) }
         item {
-            SectionHeader(
-                stringResource(R.string.section_repos),
-                stringResource(R.string.repos_hint, GitHub.account(context)),
+            AccountsCard(
+                accounts = accounts,
+                onLink = { linking = true },
+                onRemove = { login ->
+                    GitHubAuth.remove(context, login)
+                    GitHub.removeAccountRepos(context, login)
+                    accounts = GitHubAuth.accounts(context).map { it.login }
+                    repos.clear()
+                    repos.addAll(GitHub.repos(context))
+                    saveRepos(refresh = false)
+                },
             )
         }
+        item { SectionHeader(stringResource(R.string.section_repos), stringResource(R.string.repos_hint)) }
         item {
             Card(Modifier.fillMaxWidth()) {
                 if (repos.isEmpty()) {
@@ -109,9 +122,9 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                     key = { it },
                     onMove = { from, to -> repos.add(to, repos.removeAt(from)) },
                     onDragEnd = { saveRepos(refresh = false) },
-                ) { repo, handle ->
-                    RepoRow(repo, statuses[repo], now, handle) {
-                        repos.remove(repo)
+                ) { entry, handle ->
+                    RepoRow(GitHub.fullName(entry), statuses[GitHub.fullName(entry)], now, handle) {
+                        repos.remove(entry)
                         saveRepos(refresh = false)
                     }
                 }
@@ -119,7 +132,7 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalButton(onClick = { picking = true }, enabled = repos.size < GitHub.MAX_REPOS) {
+                FilledTonalButton(onClick = { picking = true }, enabled = accounts.isNotEmpty() && repos.size < GitHub.MAX_REPOS) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.add_repo))
@@ -137,6 +150,7 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                 Text(
                     text = when {
                         cache.error == "rate_limited" -> stringResource(R.string.github_rate_limited_long)
+                        cache.error == "unauthorized" -> stringResource(R.string.github_unauthorized)
                         cache.updatedAt == 0L -> stringResource(R.string.never_updated)
                         else -> stringResource(R.string.github_updated, formatElapsed(context, now - cache.updatedAt))
                     },
@@ -174,14 +188,24 @@ fun GitHubScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         }
     }
 
+    if (linking) {
+        LinkAccountDialog(
+            onDismiss = { linking = false },
+            onLinked = {
+                linking = false
+                accounts = GitHubAuth.accounts(context).map { it.login }
+                picking = true
+            },
+        )
+    }
     if (picking) {
         RepoPicker(
-            existing = repos.toSet(),
+            existing = repos.map { GitHub.fullName(it) }.toSet(),
             onDismiss = { picking = false },
-            onPicked = { repo ->
+            onPicked = { entry ->
                 picking = false
-                if (repo !in repos && repos.size < GitHub.MAX_REPOS) {
-                    repos.add(repo)
+                if (repos.none { GitHub.fullName(it) == GitHub.fullName(entry) } && repos.size < GitHub.MAX_REPOS) {
+                    repos.add(entry)
                     saveRepos(refresh = true)
                 }
             },
@@ -253,55 +277,3 @@ private fun RefreshChips(selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-/** 列出账号下的公开仓库（按最近推送排序）供选择；已添加的不可再选。 */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RepoPicker(existing: Set<String>, onDismiss: () -> Unit, onPicked: (String) -> Unit) {
-    val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var repos by remember { mutableStateOf<List<String>?>(null) }
-    var failed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        runCatching { GitHub.listRepos(context) }
-            .onSuccess { repos = it }
-            .onFailure { failed = true }
-    }
-
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Text(
-            stringResource(R.string.pick_repo, GitHub.account(context)),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-        )
-        val list = repos
-        when {
-            failed -> Text(
-                stringResource(R.string.repos_load_failed),
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(24.dp),
-            )
-            list == null -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            else -> LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-                items(list, key = { it }) { repo ->
-                    val taken = repo in existing
-                    ListItem(
-                        modifier = Modifier.clickable(enabled = !taken) { onPicked(repo) }.padding(horizontal = 8.dp),
-                        headlineContent = {
-                            Text(
-                                repo.substringAfter('/'),
-                                color = if (taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        trailingContent = if (taken) {
-                            { Text(stringResource(R.string.pair_exists), style = MaterialTheme.typography.labelMedium) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
-    }
-}

@@ -17,7 +17,7 @@ data class Release(val version: String, val notes: String, val apkUrl: String?, 
 
 /** 从 GitHub Releases 检查新版本，下载 APK 并交给系统安装器（同一签名可直接覆盖安装）。 */
 object UpdateChecker {
-    const val REPO = "MuqiuPeng/SamsungWidgets"
+    private const val REPO = "MuqiuPeng/SamsungWidgets"
     const val REPO_URL = "https://github.com/$REPO"
     private const val PREFS = "update"
     private const val KEY_SKIPPED = "skipped_version"
