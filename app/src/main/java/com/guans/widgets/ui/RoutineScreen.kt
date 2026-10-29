@@ -107,11 +107,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         scope.launch { RoutineTicker.pushAll(context) }
     }
 
-    fun move(from: Int, to: Int) = changed {
-        val order = routines.map { it.preset }.toMutableList()
-        order.add(to, order.removeAt(from))
-        Routines.setOrder(context, order)
-    }
 
     LazyColumn(contentPadding = screenPadding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
@@ -126,18 +121,19 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                routines.forEachIndexed { index, routine ->
-                    if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                ReorderableColumn(
+                    items = routines,
+                    key = { it.preset.name },
+                    onMove = { from, to -> routines = routines.toMutableList().apply { add(to, removeAt(from)) } },
+                    onDragEnd = { changed { Routines.setOrder(context, routines.map { it.preset }) } },
+                ) { routine, handle ->
                     RoutineRow(
                         routine = routine,
                         now = now,
-                        canMoveUp = index > 0,
-                        canMoveDown = index < routines.lastIndex,
+                        handle = handle,
                         onDone = { changed { Routines.markDone(context, routine.preset) } },
                         onSetTime = { timeFor = routine },
                         onUndo = { changed { Routines.undo(context, routine.preset) } },
-                        onMoveUp = { move(index, index - 1) },
-                        onMoveDown = { move(index, index + 1) },
                         onDelete = { changed { Routines.remove(context, routine.preset) } },
                     )
                 }
@@ -199,19 +195,17 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
 private fun RoutineRow(
     routine: Routine,
     now: Long,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
+    handle: @Composable () -> Unit,
     onDone: () -> Unit,
     onSetTime: () -> Unit,
     onUndo: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = handle,
         headlineContent = { Text(stringResource(routine.preset.nameRes)) },
         supportingContent = {
             Column {
@@ -254,12 +248,6 @@ private fun RoutineRow(
                     )
                     if (routine.lastDone > 0) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.routine_undo)) }, onClick = { menu = false; onUndo() })
-                    }
-                    if (canMoveUp) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.pair_move_up)) }, onClick = { menu = false; onMoveUp() })
-                    }
-                    if (canMoveDown) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.pair_move_down)) }, onClick = { menu = false; onMoveDown() })
                     }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.pair_delete), color = MaterialTheme.colorScheme.error) },

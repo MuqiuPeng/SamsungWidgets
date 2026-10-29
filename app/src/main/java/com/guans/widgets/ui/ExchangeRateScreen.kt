@@ -109,15 +109,19 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                pairs.forEachIndexed { index, pair ->
-                    if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                ReorderableColumn(
+                    items = pairs.toList(),
+                    key = { it },
+                    onMove = { from, to -> pairs.add(to, pairs.removeAt(from)) },
+                    onDragEnd = { savePairs() },
+                ) { pair, handle ->
+                    val index = pairs.indexOf(pair)
                     PairRow(
+                        handle = handle,
                         pair = pair,
                         row = rates[pair],
                         locale = locale,
                         upIsRed = upIsRed,
-                        canMoveUp = index > 0,
-                        canMoveDown = index < pairs.lastIndex,
                         onReverse = {
                             val (from, to) = pair.split('/')
                             val reversed = "$to/$from"
@@ -126,8 +130,6 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                                 savePairs()
                             }
                         },
-                        onMoveUp = { pairs.add(index - 1, pairs.removeAt(index)); savePairs() },
-                        onMoveDown = { pairs.add(index + 1, pairs.removeAt(index)); savePairs() },
                         onDelete = { pairs.removeAt(index); savePairs() },
                     )
                 }
@@ -217,17 +219,15 @@ private fun PairRow(
     row: RateRow?,
     locale: Locale,
     upIsRed: Boolean,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
+    handle: @Composable () -> Unit,
     onReverse: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val (from, to) = pair.split('/')
     var menu by remember { mutableStateOf(false) }
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = handle,
         headlineContent = { Text("$from → $to") },
         supportingContent = {
             Text(
@@ -258,12 +258,6 @@ private fun PairRow(
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.pair_reverse)) }, onClick = { menu = false; onReverse() })
-                    if (canMoveUp) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.pair_move_up)) }, onClick = { menu = false; onMoveUp() })
-                    }
-                    if (canMoveDown) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.pair_move_down)) }, onClick = { menu = false; onMoveDown() })
-                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.pair_delete), color = MaterialTheme.colorScheme.error) },
                         onClick = { menu = false; onDelete() },
