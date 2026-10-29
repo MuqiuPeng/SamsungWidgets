@@ -82,6 +82,25 @@ object GlassBackground {
         return (w * density).roundToInt() to (h * density).roundToInt()
     }
 
+    /**
+     * 桌面在格子里给小工具留的边距（dp，每边）。系统报给小工具的大小是整块格子区域，
+     * 实际画出来的小工具比它小一圈，裁剪时要扣掉这一圈。各家桌面不一样，由用户在对齐页选。
+     */
+    val INSET_OPTIONS = listOf(0, 4, 8, 12, 16)
+
+    fun insetDp(context: Context): Int = prefs(context).getInt("inset_dp", 8)
+
+    fun setInsetDp(context: Context, dp: Int) {
+        prefs(context).edit().putInt("inset_dp", dp).apply()
+    }
+
+    /** 小工具实际可见的大小（像素）：格子区域扣掉每边的边距。 */
+    fun visibleSizePx(context: Context, appWidgetId: Int, insetDp: Int = insetDp(context)): Pair<Int, Int> {
+        val (w, h) = widgetSizePx(context, appWidgetId)
+        val inset = (2 * insetDp * context.resources.displayMetrics.density).roundToInt()
+        return max(1, w - inset) to max(1, h - inset)
+    }
+
     /** 整块屏幕（含状态栏、导航栏，壁纸铺满的范围），按竖屏算。 */
     fun screenSizePx(context: Context): Pair<Int, Int> {
         val windows = context.getSystemService(WindowManager::class.java)
@@ -135,7 +154,7 @@ object GlassBackground {
 
     /** 某个小工具的背景：裁出背后那一块、叠底色、切圆角。没权限时返回 null。 */
     fun backgroundFor(context: Context, appWidgetId: Int): Bitmap? {
-        val (widgetW, widgetH) = widgetSizePx(context, appWidgetId)
+        val (widgetW, widgetH) = visibleSizePx(context, appWidgetId)
         val (screenW, screenH) = screenSizePx(context)
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
             Configuration.UI_MODE_NIGHT_YES

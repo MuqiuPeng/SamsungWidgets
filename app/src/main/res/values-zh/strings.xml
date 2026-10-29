@@ -192,4 +192,5 @@
     <string name="github_install">去 GitHub 安装</string>
     <string name="github_install_more">安装到其他账号或修改可见仓库</string>
     <string name="github_unauthorized">有账号的授权已失效，请取消关联后重新关联。</string>
+    <string name="glass_inset">边距 dp</string>
 </resources>

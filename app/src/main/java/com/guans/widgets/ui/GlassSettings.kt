@@ -11,6 +11,8 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
@@ -192,6 +195,9 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
     val (widgetW, widgetH) = remember { GlassBackground.widgetSizePx(context, widget.appWidgetId) }
     val start = remember { GlassBackground.position(context, widget.appWidgetId) ?: GlassBackground.Position(0.5f, 0.5f) }
     var grid by remember { mutableStateOf(HomeGrid.current(context)) }
+    var insetDp by remember { mutableIntStateOf(GlassBackground.insetDp(context)) }
+    // 方框画的是小工具实际可见的大小（比格子小一圈），吸附仍按整块格子区域算
+    val (visibleW, visibleH) = GlassBackground.visibleSizePx(context, widget.appWidgetId, insetDp)
     var centerX by remember { mutableFloatStateOf(start.centerX) }
     var centerY by remember { mutableFloatStateOf(start.centerY) }
     var dragging by remember { mutableStateOf(false) }
@@ -210,9 +216,16 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
         wallpaper = withContext(Dispatchers.IO) { GlassBackground.screenWallpaper(context, 1f / 3) }
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // 全屏对话框会延伸到状态栏和导航栏下面，按钮要避开导航栏
+            Column(
+                Modifier.fillMaxSize().systemBarsPadding().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(widget.label, style = MaterialTheme.typography.titleMedium)
                 Text(
                     stringResource(R.string.glass_drag_hint),
@@ -223,7 +236,7 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 12.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 12.dp),
                 ) {
                     Text(stringResource(R.string.glass_grid), style = MaterialTheme.typography.labelLarge)
                     HomeGrid.OPTIONS.forEach { option ->
@@ -238,6 +251,23 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                         )
                     }
                 }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 12.dp),
+                ) {
+                    Text(stringResource(R.string.glass_inset), style = MaterialTheme.typography.labelLarge)
+                    GlassBackground.INSET_OPTIONS.forEach { dp ->
+                        FilterChip(
+                            selected = dp == insetDp,
+                            onClick = {
+                                insetDp = dp
+                                GlassBackground.setInsetDp(context, dp)
+                            },
+                            label = { Text("$dp") },
+                        )
+                    }
+                }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     BoxWithConstraints(
                         Modifier
@@ -249,8 +279,8 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                         val density = LocalDensity.current
                         val boxW = constraints.maxWidth.toFloat()
                         val boxH = constraints.maxHeight.toFloat()
-                        val rectW = boxW * widgetW / screenW
-                        val rectH = boxH * widgetH / screenH
+                        val rectW = boxW * visibleW / screenW
+                        val rectH = boxH * visibleH / screenH
                         wallpaper?.let {
                             Image(
                                 bitmap = it.asImageBitmap(),

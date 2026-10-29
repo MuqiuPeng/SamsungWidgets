@@ -195,4 +195,5 @@
     <string name="github_install">Install on GitHub</string>
     <string name="github_install_more">Install on another account or change repositories</string>
     <string name="github_unauthorized">Access to an account was revoked. Unlink it and link it again.</string>
+    <string name="glass_inset">Widget margin (dp)</string>
 </resources>
