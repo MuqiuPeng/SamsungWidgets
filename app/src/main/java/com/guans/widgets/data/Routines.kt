@@ -70,7 +70,18 @@ data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: 
         val rounds = (now - lastDone) / preset.loopMs + 1
         return lastDone + rounds * preset.loopMs
     }
+
+    /** 本轮倒计时已走过的比例（0 刚开始，接近 1 快重置）；不是倒计时或没开始时为 null。 */
+    fun loopProgress(now: Long): Float? {
+        val reset = nextReset(now) ?: return null
+        return (1f - (reset - now).toFloat() / preset.loopMs).coerceIn(0f, 1f)
+    }
 }
+
+/** 倒计时条目的底色：随本轮进度从几乎透明逐渐变红。 */
+fun loopTintAlpha(progress: Float): Float = 0.06f + 0.5f * progress
+
+const val LOOP_TINT_RED = 0xFFE53935
 
 private const val HOUR_MS = 60 * 60 * 1000L
 private const val DAY_MS = 24 * HOUR_MS

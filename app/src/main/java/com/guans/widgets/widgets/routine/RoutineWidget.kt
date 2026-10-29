@@ -43,6 +43,10 @@ import com.guans.widgets.widgets.common.widgetSurface
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
 import com.guans.widgets.data.formatStatus
+import com.guans.widgets.data.LOOP_TINT_RED
+import com.guans.widgets.data.loopTintAlpha
+import androidx.compose.ui.graphics.Color
+import androidx.glance.color.ColorProvider
 
 class RoutineWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -133,8 +137,18 @@ private fun Content(state: Preferences) {
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 items(routines, itemId = { it.preset.ordinal.toLong() }) { routine ->
                     val elapsed = routine.elapsed(now)
+                    val tint = routine.loopProgress(now)?.let { Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(it)) }
+                    // 倒计时条目底色随本轮进度逐渐变红；其他条目留同样的内边距，文字对齐
+                    val rowBackground = if (tint != null) {
+                        GlanceModifier.background(ColorProvider(day = tint, night = tint)).cornerRadius(10.dp)
+                    } else {
+                        GlanceModifier
+                    }
                     Column(
-                        modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp).clickable(
+                        modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp)
+                            .then(rowBackground)
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                            .clickable(
                             actionRunCallback<MarkDoneAction>(actionParametersOf(RoutineKeys.ID to routine.preset.name)),
                         ),
                     ) {

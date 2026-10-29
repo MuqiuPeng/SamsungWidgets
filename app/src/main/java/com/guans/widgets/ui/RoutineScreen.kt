@@ -61,6 +61,8 @@ import com.guans.widgets.data.Routines
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.data.formatRemaining
 import com.guans.widgets.data.formatStatus
+import com.guans.widgets.data.LOOP_TINT_RED
+import com.guans.widgets.data.loopTintAlpha
 import com.guans.widgets.widgets.routine.RoutineTicker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -203,8 +205,9 @@ private fun RoutineRow(
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
+    val tint = routine.loopProgress(now)?.let { Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(it)) }
     ListItem(
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        colors = ListItemDefaults.colors(containerColor = tint ?: Color.Transparent),
         leadingContent = handle,
         headlineContent = { Text(stringResource(routine.preset.nameRes)) },
         supportingContent = {
