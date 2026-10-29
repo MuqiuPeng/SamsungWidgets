@@ -150,7 +150,7 @@
     <string name="glass_align">对齐位置</string>
     <string name="glass_aligned">已对齐</string>
     <string name="glass_not_aligned">未对齐（暂按屏幕中央）</string>
-    <string name="glass_drag_hint">选和桌面设置一致的网格，把方框拖到这个小工具在桌面上的位置，松手会自动吸附到格子上。</string>
+    <string name="glass_drag_hint">选和桌面设置一致的网格，把方框拖到这个小工具在桌面上的位置，松手会自动吸附到格子上，返回即保存。</string>
     <string name="glass_grid">桌面网格</string>
     <string name="drag_to_reorder">拖动排序</string>
     <!-- GitHub 小工具 -->

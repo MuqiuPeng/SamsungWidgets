@@ -31,7 +31,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -165,7 +169,6 @@ fun GlassSettings() {
     editing?.let { widget ->
         PositionEditor(
             widget = widget,
-            onDismiss = { editing = null },
             onSave = { position ->
                 GlassBackground.setPosition(context, widget.appWidgetId, position)
                 editing = null
@@ -189,7 +192,7 @@ private fun placedWidgets(context: android.content.Context): List<PlacedWidget> 
 
 /** 在壁纸缩略图上拖动方框，对齐到小工具在桌面上的位置。 */
 @Composable
-private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: (GlassBackground.Position) -> Unit) {
+private fun PositionEditor(widget: PlacedWidget, onSave: (GlassBackground.Position) -> Unit) {
     val context = LocalContext.current
     val (screenW, screenH) = remember { GlassBackground.screenSizePx(context) }
     val (widgetW, widgetH) = remember { GlassBackground.widgetSizePx(context, widget.appWidgetId) }
@@ -217,16 +220,25 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        // 没有确定按钮：返回（手势、返回键或左上角箭头）时直接保存当前位置
+        onDismissRequest = { onSave(GlassBackground.Position(centerX, centerY)) },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            // 全屏对话框会延伸到状态栏和导航栏下面，按钮要避开导航栏
+            // 全屏对话框会延伸到状态栏和导航栏下面，内容要避开系统栏
             Column(
                 Modifier.fillMaxSize().systemBarsPadding().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(widget.label, style = MaterialTheme.typography.titleMedium)
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    IconButton(
+                        onClick = { onSave(GlassBackground.Position(centerX, centerY)) },
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                    Text(widget.label, style = MaterialTheme.typography.titleMedium)
+                }
                 Text(
                     stringResource(R.string.glass_drag_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -325,13 +337,6 @@ private fun PositionEditor(widget: PlacedWidget, onDismiss: () -> Unit, onSave: 
                                     }
                                 },
                         )
-                    }
-                }
-                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-                    Spacer(Modifier.size(8.dp))
-                    FilledTonalButton(onClick = { onSave(GlassBackground.Position(centerX, centerY)) }) {
-                        Text(stringResource(R.string.routine_confirm))
                     }
                 }
             }

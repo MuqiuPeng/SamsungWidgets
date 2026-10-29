@@ -153,7 +153,7 @@
     <string name="glass_align">Align</string>
     <string name="glass_aligned">Aligned</string>
     <string name="glass_not_aligned">Not aligned yet (assumed centered)</string>
-    <string name="glass_drag_hint">Pick the grid your home screen uses, then drag the box to where this widget sits. It snaps to the grid when you let go.</string>
+    <string name="glass_drag_hint">Pick the grid your home screen uses, then drag the box to where this widget sits. It snaps to the grid when you let go, and is saved when you go back.</string>
     <string name="glass_grid">Home grid</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <!-- GitHub 小工具 -->
