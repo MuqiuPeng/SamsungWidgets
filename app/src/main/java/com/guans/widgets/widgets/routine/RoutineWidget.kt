@@ -15,7 +15,6 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -134,8 +133,6 @@ private fun Content(state: Preferences) {
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 items(routines, itemId = { it.preset.ordinal.toLong() }) { routine ->
                     val elapsed = routine.elapsed(now)
-                    val progress = routine.progress(now)
-                    val overdue = routine.overdue(now)
                     Column(
                         modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp).clickable(
                             actionRunCallback<MarkDoneAction>(actionParametersOf(RoutineKeys.ID to routine.preset.name)),
@@ -152,23 +149,11 @@ private fun Content(state: Preferences) {
                                 text = formatElapsed(context, elapsed),
                                 style = TextStyle(
                                     fontSize = 13.sp,
-                                    fontWeight = if (overdue) FontWeight.Bold else FontWeight.Medium,
-                                    color = when {
-                                        overdue -> GlanceTheme.colors.error
-                                        elapsed == null -> GlanceTheme.colors.onSurfaceVariant
-                                        else -> GlanceTheme.colors.onSurface
-                                    },
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (elapsed == null) GlanceTheme.colors.onSurfaceVariant
+                                    else GlanceTheme.colors.onSurface,
                                 ),
                                 maxLines = 1,
-                            )
-                        }
-                        if (progress != null) {
-                            Spacer(GlanceModifier.height(3.dp))
-                            LinearProgressIndicator(
-                                progress = progress.coerceAtMost(1f),
-                                modifier = GlanceModifier.fillMaxWidth().height(3.dp),
-                                color = if (overdue) GlanceTheme.colors.error else GlanceTheme.colors.primary,
-                                backgroundColor = GlanceTheme.colors.surfaceVariant,
                             )
                         }
                     }

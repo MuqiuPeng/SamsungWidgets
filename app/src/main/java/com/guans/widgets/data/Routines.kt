@@ -5,35 +5,35 @@ import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import com.guans.widgets.R
 
-/** 可选的日常事项。id 写进存储，不要改；名字随语言变化。cycleDays 是添加时的默认提醒周期。 */
-enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, val cycleDays: Int) {
-    SHOWER(R.string.routine_shower, Category.CARE, 1),
-    WASH_HAIR(R.string.routine_wash_hair, Category.CARE, 2),
-    SKINCARE(R.string.routine_skincare, Category.CARE, 1),
-    FACE_MASK(R.string.routine_face_mask, Category.CARE, 3),
-    SHAVE(R.string.routine_shave, Category.CARE, 2),
-    NAILS(R.string.routine_nails, Category.CARE, 7),
-    HAIRCUT(R.string.routine_haircut, Category.CARE, 30),
-    TOOTHBRUSH(R.string.routine_toothbrush, Category.CARE, 90),
+/** 可选的日常事项。id 写进存储，不要改；名字随语言变化。 */
+enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category) {
+    SHOWER(R.string.routine_shower, Category.CARE),
+    WASH_HAIR(R.string.routine_wash_hair, Category.CARE),
+    SKINCARE(R.string.routine_skincare, Category.CARE),
+    FACE_MASK(R.string.routine_face_mask, Category.CARE),
+    SHAVE(R.string.routine_shave, Category.CARE),
+    NAILS(R.string.routine_nails, Category.CARE),
+    HAIRCUT(R.string.routine_haircut, Category.CARE),
+    TOOTHBRUSH(R.string.routine_toothbrush, Category.CARE),
 
-    LAUNDRY(R.string.routine_laundry, Category.HOME, 3),
-    BEDDING(R.string.routine_bedding, Category.HOME, 7),
-    TOWELS(R.string.routine_towels, Category.HOME, 7),
-    CLEAN(R.string.routine_clean, Category.HOME, 7),
-    MOP(R.string.routine_mop, Category.HOME, 7),
-    TRASH(R.string.routine_trash, Category.HOME, 1),
-    PLANTS(R.string.routine_plants, Category.HOME, 3),
-    FRIDGE(R.string.routine_fridge, Category.HOME, 30),
+    LAUNDRY(R.string.routine_laundry, Category.HOME),
+    BEDDING(R.string.routine_bedding, Category.HOME),
+    TOWELS(R.string.routine_towels, Category.HOME),
+    CLEAN(R.string.routine_clean, Category.HOME),
+    MOP(R.string.routine_mop, Category.HOME),
+    TRASH(R.string.routine_trash, Category.HOME),
+    PLANTS(R.string.routine_plants, Category.HOME),
+    FRIDGE(R.string.routine_fridge, Category.HOME),
 
-    WORKOUT(R.string.routine_workout, Category.HEALTH, 2),
-    WEIGH(R.string.routine_weigh, Category.HEALTH, 7),
-    VITAMINS(R.string.routine_vitamins, Category.HEALTH, 1),
-    WATER_FILTER(R.string.routine_water_filter, Category.HEALTH, 90),
+    WORKOUT(R.string.routine_workout, Category.HEALTH),
+    WEIGH(R.string.routine_weigh, Category.HEALTH),
+    VITAMINS(R.string.routine_vitamins, Category.HEALTH),
+    WATER_FILTER(R.string.routine_water_filter, Category.HEALTH),
 
-    CALL_FAMILY(R.string.routine_call_family, Category.LIFE, 7),
-    PET_BATH(R.string.routine_pet_bath, Category.LIFE, 14),
-    CAR_WASH(R.string.routine_car_wash, Category.LIFE, 30),
-    BACKUP(R.string.routine_backup, Category.LIFE, 30);
+    CALL_FAMILY(R.string.routine_call_family, Category.LIFE),
+    PET_BATH(R.string.routine_pet_bath, Category.LIFE),
+    CAR_WASH(R.string.routine_car_wash, Category.LIFE),
+    BACKUP(R.string.routine_backup, Category.LIFE);
 
     enum class Category(@StringRes val nameRes: Int) {
         CARE(R.string.routine_cat_care),
@@ -47,28 +47,18 @@ enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, va
     }
 }
 
-/** 一个事项的当前状态。lastDone 为 0 表示还没记录过；cycleDays 为 0 表示不提醒。 */
-data class Routine(val preset: RoutinePreset, val lastDone: Long, val cycleDays: Int, val previous: Long) {
+/** 一个事项的当前状态。lastDone 为 0 表示还没记录过。 */
+data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: Long) {
     fun elapsed(now: Long): Long? = if (lastDone > 0) (now - lastDone).coerceAtLeast(0) else null
-
-    /** 已过去的时间占周期的比例；没有周期或没记录过时为 null。 */
-    fun progress(now: Long): Float? {
-        val elapsed = elapsed(now) ?: return null
-        if (cycleDays <= 0) return null
-        return elapsed.toFloat() / (cycleDays * DAY_MS)
-    }
-
-    fun overdue(now: Long): Boolean = (progress(now) ?: 0f) >= 1f
 }
 
 private const val HOUR_MS = 60 * 60 * 1000L
-const val DAY_MS = 24 * HOUR_MS
+private const val DAY_MS = 24 * HOUR_MS
 
 /** 日常事项及每项上次完成的时间，所有小工具实例共用一份。 */
 object Routines {
     private const val PREFS = "routines"
     const val MAX_ITEMS = 8
-    val CYCLE_OPTIONS = listOf(0, 1, 2, 3, 7, 14, 30, 90)
 
     /** 误点后可以撤销的时间窗口。 */
     const val UNDO_WINDOW_MS = 5 * 60 * 1000L
@@ -85,7 +75,6 @@ object Routines {
             Routine(
                 preset = preset,
                 lastDone = prefs.getLong("last_${preset.name}", 0L),
-                cycleDays = prefs.getInt("cycle_${preset.name}", preset.cycleDays),
                 previous = prefs.getLong("prev_${preset.name}", 0L),
             )
         }
@@ -106,12 +95,7 @@ object Routines {
         prefs(context).edit()
             .remove("last_${preset.name}")
             .remove("prev_${preset.name}")
-            .remove("cycle_${preset.name}")
             .apply()
-    }
-
-    fun setCycle(context: Context, preset: RoutinePreset, days: Int) {
-        prefs(context).edit().putInt("cycle_${preset.name}", days).apply()
     }
 
     /** 记为在 time 完成；旧的时间留作撤销。 */
@@ -157,12 +141,3 @@ fun formatElapsed(context: Context, elapsed: Long?): String {
     }
 }
 
-fun formatCycle(context: Context, days: Int): String = when (days) {
-    0 -> context.getString(R.string.routine_cycle_none)
-    1 -> context.getString(R.string.routine_cycle_daily)
-    7 -> context.getString(R.string.routine_cycle_weekly)
-    14 -> context.getString(R.string.routine_cycle_biweekly)
-    30 -> context.getString(R.string.routine_cycle_monthly)
-    90 -> context.getString(R.string.routine_cycle_quarterly)
-    else -> context.getString(R.string.routine_cycle_days, days)
-}

@@ -88,25 +88,15 @@
     <string name="routine_hours_ago">%1$dh ago</string>
     <string name="routine_days_hours_ago">%1$dd %2$dh ago</string>
     <string name="routine_days_ago">%1$dd ago</string>
-    <string name="routine_cycle_none">No reminder</string>
-    <string name="routine_cycle_daily">Daily</string>
-    <string name="routine_cycle_weekly">Weekly</string>
-    <string name="routine_cycle_biweekly">Every 2 weeks</string>
-    <string name="routine_cycle_monthly">Monthly</string>
-    <string name="routine_cycle_quarterly">Every 3 months</string>
-    <string name="routine_cycle_days">Every %1$d days</string>
-    <string name="routine_cycle_label">Cycle: %1$s</string>
 
     <string name="routine_settings_title">Routine timer</string>
     <string name="section_routines">Routines</string>
-    <string name="routines_hint">Tap a routine on the widget when you\'ve done it. It turns red once its cycle has passed.</string>
+    <string name="routines_hint">Tap a routine on the widget when you\'ve done it, and its timer starts over.</string>
     <string name="routines_empty">No routines yet. Add one below.</string>
     <string name="add_routine">Add routine</string>
     <string name="routines_limit">Up to %1$d routines</string>
     <string name="pick_routine">Choose a routine</string>
     <string name="routine_mark_done">Done just now</string>
-    <string name="routine_set_cycle">Reminder cycle</string>
-    <string name="routine_cycle_hint">The routine turns red on the widget when it\'s been longer than this.</string>
     <string name="routine_set_time">Change last time</string>
     <string name="routine_pick_time">Time</string>
     <string name="routine_next">Next</string>

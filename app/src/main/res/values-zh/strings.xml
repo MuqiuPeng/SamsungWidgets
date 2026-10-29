@@ -85,25 +85,15 @@
     <string name="routine_hours_ago">%1$d 小时前</string>
     <string name="routine_days_hours_ago">%1$d 天 %2$d 小时前</string>
     <string name="routine_days_ago">%1$d 天前</string>
-    <string name="routine_cycle_none">不提醒</string>
-    <string name="routine_cycle_daily">每天</string>
-    <string name="routine_cycle_weekly">每周</string>
-    <string name="routine_cycle_biweekly">每两周</string>
-    <string name="routine_cycle_monthly">每月</string>
-    <string name="routine_cycle_quarterly">每三个月</string>
-    <string name="routine_cycle_days">每 %1$d 天</string>
-    <string name="routine_cycle_label">周期：%1$s</string>
 
     <string name="routine_settings_title">习惯计时</string>
     <string name="section_routines">事项</string>
-    <string name="routines_hint">做完后点一下小工具上的对应事项即可重新计时；超过周期会变红。</string>
+    <string name="routines_hint">做完后点一下小工具上的对应事项，就从头开始计时。</string>
     <string name="routines_empty">还没有事项，点下方添加</string>
     <string name="add_routine">添加事项</string>
     <string name="routines_limit">最多 %1$d 项</string>
     <string name="pick_routine">选择事项</string>
     <string name="routine_mark_done">刚刚做过</string>
-    <string name="routine_set_cycle">提醒周期</string>
-    <string name="routine_cycle_hint">距上次超过这个时间，小工具上该事项会变红。</string>
     <string name="routine_set_time">修改上次时间</string>
     <string name="routine_pick_time">选择时间</string>
     <string name="routine_next">下一步</string>

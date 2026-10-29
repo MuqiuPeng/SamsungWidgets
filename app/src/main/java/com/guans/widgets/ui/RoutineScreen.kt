@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -28,13 +27,11 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,13 +53,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.guans.widgets.R
 import com.guans.widgets.data.Routine
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
-import com.guans.widgets.data.formatCycle
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.widgets.routine.RoutineTicker
 import kotlinx.coroutines.delay
@@ -76,7 +71,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Date
 
-/** 习惯计时小工具的设置：事项、提醒周期、手动记录与修正时间。 */
+/** 习惯计时小工具的设置：事项、手动记录与修正时间。 */
 @Composable
 fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     val context = LocalContext.current
@@ -84,7 +79,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var routines by remember { mutableStateOf(Routines.all(context)) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var picking by remember { mutableStateOf(false) }
-    var cycleFor by remember { mutableStateOf<Routine?>(null) }
     var timeFor by remember { mutableStateOf<Routine?>(null) }
 
     // 小工具上点过之后，这里跟着更新；页面开着时每分钟重算一次“多久之前”
@@ -138,7 +132,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                         canMoveUp = index > 0,
                         canMoveDown = index < routines.lastIndex,
                         onDone = { changed { Routines.markDone(context, routine.preset) } },
-                        onCycle = { cycleFor = routine },
                         onSetTime = { timeFor = routine },
                         onUndo = { changed { Routines.undo(context, routine.preset) } },
                         onMoveUp = { move(index, index - 1) },
@@ -188,16 +181,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             },
         )
     }
-    cycleFor?.let { routine ->
-        CycleDialog(
-            routine = routine,
-            onDismiss = { cycleFor = null },
-            onSelect = { days ->
-                cycleFor = null
-                changed { Routines.setCycle(context, routine.preset, days) }
-            },
-        )
-    }
     timeFor?.let { routine ->
         LastDonePicker(
             initial = routine.lastDone.takeIf { it > 0 } ?: System.currentTimeMillis(),
@@ -217,7 +200,6 @@ private fun RoutineRow(
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onDone: () -> Unit,
-    onCycle: () -> Unit,
     onSetTime: () -> Unit,
     onUndo: () -> Unit,
     onMoveUp: () -> Unit,
@@ -226,8 +208,6 @@ private fun RoutineRow(
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
-    val overdue = routine.overdue(now)
-    val progress = routine.progress(now)
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = { Text(stringResource(routine.preset.nameRes)) },
@@ -239,19 +219,7 @@ private fun RoutineRow(
                 } else {
                     formatElapsed(context, null)
                 }
-                Text(last, color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    stringResource(R.string.routine_cycle_label, formatCycle(context, routine.cycleDays)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (progress != null) {
-                    LinearProgressIndicator(
-                        progress = { progress.coerceAtMost(1f) },
-                        color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    )
-                }
+                Text(last, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         trailingContent = {
@@ -263,7 +231,6 @@ private fun RoutineRow(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.routine_set_cycle)) }, onClick = { menu = false; onCycle() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.routine_set_time)) }, onClick = { menu = false; onSetTime() })
                     if (routine.lastDone > 0) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.routine_undo)) }, onClick = { menu = false; onUndo() })
@@ -288,7 +255,6 @@ private fun RoutineRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoutinePicker(existing: Set<RoutinePreset>, onDismiss: () -> Unit, onPicked: (RoutinePreset) -> Unit) {
-    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Text(
@@ -316,9 +282,6 @@ private fun RoutinePicker(existing: Set<RoutinePreset>, onDismiss: () -> Unit, o
                                 color = if (taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             )
                         },
-                        supportingContent = {
-                            Text(stringResource(R.string.routine_cycle_label, formatCycle(context, preset.cycleDays)))
-                        },
                         trailingContent = if (taken) {
                             { Text(stringResource(R.string.pair_exists), style = MaterialTheme.typography.labelMedium) }
                         } else {
@@ -329,40 +292,6 @@ private fun RoutinePicker(existing: Set<RoutinePreset>, onDismiss: () -> Unit, o
             }
         }
     }
-}
-
-@Composable
-private fun CycleDialog(routine: Routine, onDismiss: () -> Unit, onSelect: (Int) -> Unit) {
-    val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.routine_set_cycle)) },
-        text = {
-            Column {
-                Text(
-                    stringResource(R.string.routine_cycle_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                Routines.CYCLE_OPTIONS.forEach { days ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(selected = days == routine.cycleDays, role = Role.RadioButton) { onSelect(days) }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        RadioButton(selected = days == routine.cycleDays, onClick = null)
-                        Spacer(Modifier.width(12.dp))
-                        Text(formatCycle(context, days))
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
 }
 
 /** 补记或修正上次完成的时间：先选日期（不晚于今天），再选时刻。 */

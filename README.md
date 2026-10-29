@@ -12,11 +12,11 @@ App 左侧抽屉分两部分：**小工具**（各小工具的设置）和**设�
 | 小工具 | 位置 | 说明 |
 | --- | --- | --- |
 | 实时汇率 | `app/src/main/java/com/guans/widgets/widgets/exchangerate/` | 显示多个货币对的汇率及较前一日涨跌（中文红涨绿跌，英文绿涨红跌）；按设置的间隔自动更新（15/30/60 分钟或仅手动），点右上角图标立即刷新；点标题打开设置页 |
-| 习惯计时 | `app/src/main/java/com/guans/widgets/widgets/routine/` | 洗澡、护肤等事项距上次做过去了多久；做完点一下该事项即重新计时，5 分钟内可在右上角撤销；超过设定周期变红并显示进度条；不联网，每 15 分钟重算一次 |
+| 习惯计时 | `app/src/main/java/com/guans/widgets/widgets/routine/` | 洗澡、护肤等事项距上次做过去了多久；做完点一下该事项即重新计时，5 分钟内可在右上角撤销；不设周期、不提醒，只显示过了多久；不联网，每 15 分钟重算一次 |
 
 汇率设置页（`ui/ExchangeRateScreen.kt`）全部通过选择完成：从货币列表两步选出货币对，菜单里反转、排序、删除；选择刷新间隔。
 设置页（`ui/AppSettingsScreen.kt`）：语言（跟随系统 / 简体中文 / English，Android 13+ 也可在系统“应用语言”里设置）、检查更新、关于。
-习惯计时设置页（`ui/RoutineScreen.kt`）：从预设事项（个人护理、家务、健康、生活四类）中选择添加，菜单里设提醒周期、补记或修正上次时间（日期、时刻选择器）、撤销、排序、删除。
+习惯计时设置页（`ui/RoutineScreen.kt`）：从预设事项（个人护理、家务、健康、生活四类）中选择添加，菜单里补记或修正上次时间（日期、时刻选择器）、撤销、排序、删除。
 文案在 `res/values`（英文）和 `res/values-zh`（中文）。
 
 ## 结构
@@ -29,7 +29,7 @@ app/src/main/java/com/guans/widgets/
 ├── data/
 │   ├── Currencies.kt               可选货币、本地化名称
 │   ├── Settings.kt                 货币对与刷新间隔
-│   ├── Routines.kt                 习惯计时：预设事项、每项上次完成时间与周期
+│   ├── Routines.kt                 习惯计时：预设事项、每项上次完成的时间
 │   └── RateRepository.kt           汇率数据源（多源回退，统一换算成 USD 基准表）
 ├── widgets/exchangerate/
 │   ├── ExchangeRateWidget.kt       Glance 界面、receiver、刷新按钮
