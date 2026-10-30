@@ -1,7 +1,14 @@
 package com.guans.widgets.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.SharedPreferences
+import android.webkit.ConsoleMessage
+import android.webkit.CookieManager
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +46,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.guans.widgets.R
+import com.guans.widgets.data.ErrorLog
 import com.guans.widgets.data.UsageSource
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.data.formatRemaining
@@ -118,6 +126,26 @@ fun UsageCard(source: UsageSource, now: Long) {
     }
 }
 
+/** 登录页打不开时，把页面报错记进错误日志。这时还没登录，日志里没有账号信息。 */
+private class LoginChromeClient(private val context: Context) : WebChromeClient() {
+    override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+        if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+            ErrorLog.note(context, "login page", message.message().take(200))
+        }
+        return true
+    }
+}
+
+private class LoginViewClient(private val context: Context) : WebViewClient() {
+    override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+        ErrorLog.note(context, "login page", "${request.url.host}: ${error.errorCode} ${error.description}")
+    }
+
+    override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
+        if (response.statusCode >= 400) ErrorLog.note(context, "login page", "${request.url.host}: HTTP ${response.statusCode}")
+    }
+}
+
 /** 全屏登录页。账号由你自己在网页里登录，检测到登录成功后交回 Cookie。 */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -162,7 +190,12 @@ private fun LoginDialog(source: UsageSource, onDismiss: () -> Unit, onLoggedIn: 
                             WebView(context).apply {
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
-                                webViewClient = WebViewClient()
+                                settings.databaseEnabled = true
+                                settings.useWideViewPort = true
+                                settings.loadWithOverviewMode = true
+                                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                                webChromeClient = LoginChromeClient(context)
+                                webViewClient = LoginViewClient(context)
                                 loadUrl(source.loginUrl)
                             }
                         },

@@ -268,7 +268,7 @@ object ClaudeUsage : UsageSource(
 }
 
 object CodexUsage : UsageSource(
-    loginUrl = "https://chatgpt.com/auth/login",
+    loginUrl = "https://chatgpt.com/",
     origin = "https://chatgpt.com",
     cookieDomain = ".chatgpt.com",
     sessionCookie = "__Secure-next-auth.session-token",

@@ -6,6 +6,10 @@ import com.guans.widgets.BuildConfig
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -21,7 +25,14 @@ object ErrorLog {
 
     private fun file(context: Context) = File(context.filesDir, FILE)
 
+    /** 断网时的正常失败，下次刷新会自己恢复，不记录。 */
+    private fun isOffline(error: Throwable): Boolean =
+        generateSequence(error) { it.cause }.any {
+            it is UnknownHostException || it is ConnectException || it is NoRouteToHostException || it is SocketTimeoutException
+        }
+
     fun record(context: Context, where: String, error: Throwable) {
+        if (isOffline(error)) return
         val trace = StringWriter().also { error.printStackTrace(PrintWriter(it)) }.toString()
         append(context, "[$where] ${error.javaClass.simpleName}: ${error.message}\n$trace")
     }
