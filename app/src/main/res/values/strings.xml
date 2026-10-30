@@ -138,8 +138,8 @@
     <string name="routine_left_hm">%1$d:%2$02d left</string>
     <string name="routine_left_dh">%1$dd %2$dh left</string>
     <string name="routine_loop_started">This round started %1$s</string>
-    <string name="routine_loop_hint_hours">Tap to start %1$d hours. Signing in to claude.ai reads the real time.</string>
-    <string name="routine_loop_hint_days">Repeats every %1$d days. Signing in to claude.ai reads the real time.</string>
+    <string name="routine_loop_hint_hours">Tap to start %1$d hours. Signing in reads the real time.</string>
+    <string name="routine_loop_hint_days">Repeats every %1$d days. Signing in reads the real time.</string>
     <string name="routine_set_start">Change start time</string>
     <string name="routine_loop_restart">Start a new round now</string>
     <string name="section_widget_style">Widget background</string>
@@ -227,4 +227,9 @@
     <string name="claude_session_line">5h: %1$s · %2$d%% used</string>
     <string name="claude_weekly_line">Weekly: %1$s · %2$d%% used</string>
     <string name="routine_loop_ended">Reset, tap to start</string>
+    <string name="section_codex">Real Codex limits</string>
+    <string name="codex_section_note">Reads the exact reset times from chatgpt.com. This uses an unofficial interface and may stop working.</string>
+    <string name="codex_login">Sign in to ChatGPT</string>
+    <string name="routine_codex_session">Codex 5h limit</string>
+    <string name="routine_codex_weekly">Codex weekly limit</string>
 </resources>

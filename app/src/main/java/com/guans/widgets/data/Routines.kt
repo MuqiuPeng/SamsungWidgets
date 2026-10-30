@@ -7,7 +7,7 @@ import com.guans.widgets.R
 
 /**
  * 可选的日常事项。id 写进存储，不要改；名字随语言变化。
- * loopMs > 0 的是倒计时，显示距下次重置还剩多久。Claude 额度关联账号后用真实时间（见 ClaudeUsage）；
+ * loopMs > 0 的是倒计时，显示距下次重置还剩多久。AI 额度关联账号后用真实时间（见 UsageSource）；
  * 没关联时手动计时：每周额度固定循环，5 小时额度到点就停，下次用的时候再点开始。
  */
 enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, val loopMs: Long = 0L) {
@@ -40,9 +40,14 @@ enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, va
     BACKUP(R.string.routine_backup, Category.LIFE),
 
     CLAUDE_SESSION(R.string.routine_claude_session, Category.LOOP, 5 * HOUR_MS),
-    CLAUDE_WEEKLY(R.string.routine_claude_weekly, Category.LOOP, 7 * DAY_MS);
+    CLAUDE_WEEKLY(R.string.routine_claude_weekly, Category.LOOP, 7 * DAY_MS),
+    CODEX_SESSION(R.string.routine_codex_session, Category.LOOP, 5 * HOUR_MS),
+    CODEX_WEEKLY(R.string.routine_codex_weekly, Category.LOOP, 7 * DAY_MS);
 
     val isLoop: Boolean get() = loopMs > 0
+
+    /** 空闲时不会自动开始下一轮的窗口。 */
+    val stopsAtReset: Boolean get() = this == CLAUDE_SESSION || this == CODEX_SESSION
 
     enum class Category(@StringRes val nameRes: Int) {
         CARE(R.string.routine_cat_care),
@@ -68,7 +73,7 @@ data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: 
         if (!preset.isLoop || lastDone <= 0) return null
         if (now < lastDone) return lastDone + preset.loopMs
         // 5 小时窗口空闲时不会自动开始下一轮
-        if (preset == RoutinePreset.CLAUDE_SESSION) return (lastDone + preset.loopMs).takeIf { it > now }
+        if (preset.stopsAtReset) return (lastDone + preset.loopMs).takeIf { it > now }
         val rounds = (now - lastDone) / preset.loopMs + 1
         return lastDone + rounds * preset.loopMs
     }
@@ -113,7 +118,7 @@ object Routines {
                 preset = preset,
                 lastDone = prefs.getLong("last_${preset.name}", 0L),
                 previous = prefs.getLong("prev_${preset.name}", 0L),
-                live = ClaudeUsage.live(context, preset),
+                live = UsageSource.live(context, preset),
             )
         }
     }

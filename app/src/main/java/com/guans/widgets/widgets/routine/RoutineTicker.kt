@@ -16,9 +16,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.guans.widgets.data.ClaudeUsage
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
+import com.guans.widgets.data.UsageSource
 import java.util.concurrent.TimeUnit
 
 object RoutineKeys {
@@ -34,28 +34,28 @@ class RoutineTickWorker(context: Context, params: WorkerParameters) : CoroutineW
     }
 }
 
-class ClaudeRefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+class UsageRefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        ClaudeUsage.refresh(applicationContext)
+        UsageSource.all.forEach { it.refresh(applicationContext) }
         RoutineTicker.pushAll(applicationContext)
         return Result.success()
     }
 }
 
-/** 关联 claude.ai 后定时读取真实额度；新窗口开始后大约 15 分钟内能读到。 */
-object ClaudeScheduler {
+/** 关联账号后定时读取真实额度；新窗口开始后大约 15 分钟内能读到。 */
+object UsageScheduler {
     private const val PERIODIC = "claude_usage"
     private const val NOW = "claude_usage_now"
 
     private val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
     fun schedule(context: Context) {
-        val request = PeriodicWorkRequestBuilder<ClaudeRefreshWorker>(15, TimeUnit.MINUTES).setConstraints(network).build()
+        val request = PeriodicWorkRequestBuilder<UsageRefreshWorker>(15, TimeUnit.MINUTES).setConstraints(network).build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
     }
 
     fun refreshNow(context: Context) {
-        val request = OneTimeWorkRequestBuilder<ClaudeRefreshWorker>().setConstraints(network).build()
+        val request = OneTimeWorkRequestBuilder<UsageRefreshWorker>().setConstraints(network).build()
         WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.REPLACE, request)
     }
 
@@ -91,12 +91,12 @@ object RoutineTicker {
 
     /** 点一个事项：真实额度只需要重新读取；读取失败时才退回手动计时。 */
     fun tap(context: Context, preset: RoutinePreset) {
-        val live = ClaudeUsage.live(context, preset)
+        val live = UsageSource.live(context, preset)
         if (live == null || live.failed) {
             Routines.markDone(context, preset)
             expireUndoLater(context)
         }
-        if (live != null) ClaudeScheduler.refreshNow(context)
+        if (live != null) UsageScheduler.refreshNow(context)
     }
 
     fun cancel(context: Context) {

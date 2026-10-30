@@ -57,17 +57,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.guans.widgets.R
-import com.guans.widgets.data.ClaudeUsage
 import com.guans.widgets.data.Routine
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
+import com.guans.widgets.data.UsageSource
 import com.guans.widgets.data.formatElapsed
 import com.guans.widgets.data.formatRemaining
 import com.guans.widgets.data.formatStatus
 import com.guans.widgets.data.LOOP_TINT_RED
 import com.guans.widgets.data.loopTintAlpha
-import com.guans.widgets.widgets.routine.ClaudeScheduler
 import com.guans.widgets.widgets.routine.RoutineTicker
+import com.guans.widgets.widgets.routine.UsageScheduler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -88,9 +88,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var picking by remember { mutableStateOf(false) }
     var timeFor by remember { mutableStateOf<Routine?>(null) }
-    var claudeConnected by remember { mutableStateOf(ClaudeUsage.connected(context)) }
-    var claude by remember { mutableStateOf(ClaudeUsage.cached(context)) }
-    var loggingIn by remember { mutableStateOf(false) }
 
     // 小工具上点过之后，这里跟着更新；页面开着时每分钟重算一次“多久之前”
     DisposableEffect(Unit) {
@@ -100,21 +97,14 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             now = System.currentTimeMillis()
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
-        val claudePrefs = ClaudeUsage.prefs(context)
-        val claudeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-            claudeConnected = ClaudeUsage.connected(context)
-            claude = ClaudeUsage.cached(context)
-            routines = Routines.all(context)
-            now = System.currentTimeMillis()
-        }
-        claudePrefs.registerOnSharedPreferenceChangeListener(claudeListener)
+        UsageSource.all.forEach { it.prefs(context).registerOnSharedPreferenceChangeListener(listener) }
         onDispose {
             prefs.unregisterOnSharedPreferenceChangeListener(listener)
-            claudePrefs.unregisterOnSharedPreferenceChangeListener(claudeListener)
+            UsageSource.all.forEach { it.prefs(context).unregisterOnSharedPreferenceChangeListener(listener) }
         }
     }
     LaunchedEffect(Unit) {
-        if (claudeConnected) ClaudeScheduler.refreshNow(context)
+        if (UsageSource.anyConnected(context)) UsageScheduler.refreshNow(context)
         while (true) {
             delay(60_000)
             now = System.currentTimeMillis()
@@ -176,21 +166,9 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             }
         }
 
-        if (routines.any { it.preset.isLoop }) {
-            item { SectionHeader(stringResource(R.string.section_claude), stringResource(R.string.claude_section_note)) }
-            item {
-                ClaudeUsageCard(
-                    connected = claudeConnected,
-                    cached = claude,
-                    now = now,
-                    onLogin = { loggingIn = true },
-                    onRefresh = { ClaudeScheduler.refreshNow(context) },
-                    onDisconnect = {
-                        ClaudeScheduler.cancel(context)
-                        changed { ClaudeUsage.disconnect(context) }
-                    },
-                )
-            }
+        UsageSource.all.filter { source -> routines.any { source.owns(it.preset) } }.forEach { source ->
+            item { SectionHeader(stringResource(source.sectionRes), stringResource(source.noteRes)) }
+            item { UsageCard(source, now) }
         }
 
         item {
@@ -207,19 +185,6 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         }
     }
 
-    if (loggingIn) {
-        ClaudeLoginDialog(
-            onDismiss = { loggingIn = false },
-            onLoggedIn = { cookie ->
-                loggingIn = false
-                scope.launch {
-                    ClaudeUsage.saveLogin(context, cookie)
-                    ClaudeScheduler.schedule(context)
-                    ClaudeScheduler.refreshNow(context)
-                }
-            },
-        )
-    }
     if (picking) {
         RoutinePicker(
             existing = routines.map { it.preset }.toSet(),

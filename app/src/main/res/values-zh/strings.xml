@@ -135,8 +135,8 @@
     <string name="routine_left_hm">剩 %1$d:%2$02d</string>
     <string name="routine_left_dh">剩 %1$d 天 %2$d 时</string>
     <string name="routine_loop_started">本轮开始于 %1$s</string>
-    <string name="routine_loop_hint_hours">点一下开始 %1$d 小时；登录 claude.ai 后自动读取真实时间</string>
-    <string name="routine_loop_hint_days">每 %1$d 天循环一次；登录 claude.ai 后自动读取真实时间</string>
+    <string name="routine_loop_hint_hours">点一下开始 %1$d 小时；登录后自动读取真实时间</string>
+    <string name="routine_loop_hint_days">每 %1$d 天循环一次；登录后自动读取真实时间</string>
     <string name="routine_set_start">修改开始时间</string>
     <string name="routine_loop_restart">从现在开始新一轮</string>
     <string name="section_widget_style">小工具背景</string>
@@ -224,4 +224,9 @@
     <string name="claude_session_line">5 小时：%1$s · 已用 %2$d%%</string>
     <string name="claude_weekly_line">每周：%1$s · 已用 %2$d%%</string>
     <string name="routine_loop_ended">已重置，点一下开始</string>
+    <string name="section_codex">Codex 真实额度</string>
+    <string name="codex_section_note">从 chatgpt.com 读取准确的重置时间。这是非公开接口，随时可能失效。</string>
+    <string name="codex_login">登录 ChatGPT</string>
+    <string name="routine_codex_session">Codex 5 小时额度</string>
+    <string name="routine_codex_weekly">Codex 每周额度</string>
 </resources>
