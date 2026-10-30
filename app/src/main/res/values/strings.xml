@@ -232,4 +232,10 @@
     <string name="codex_login">Sign in to ChatGPT</string>
     <string name="routine_codex_session">Codex 5h limit</string>
     <string name="routine_codex_weekly">Codex weekly limit</string>
+    <string name="codex_paste_steps">1. Open the session page in your browser. Sign in to ChatGPT there if asked, then open the page again.\n2. Select all of the text on the page and copy it.\n3. Come back and paste it here.</string>
+    <string name="codex_paste_open">Open session page</string>
+    <string name="codex_paste_clipboard">Paste from clipboard</string>
+    <string name="codex_paste_label">Copied text</string>
+    <string name="codex_paste_error">No sign-in found in this text. Copy the whole page and try again.</string>
+    <string name="codex_paste_warning">This text gives full access to your ChatGPT account. Keep it private, and copy something else afterwards to clear the clipboard. Sign-in usually lasts about three months.</string>
 </resources>

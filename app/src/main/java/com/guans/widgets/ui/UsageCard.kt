@@ -2,7 +2,9 @@ package com.guans.widgets.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -21,11 +23,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +44,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -110,20 +116,71 @@ fun UsageCard(source: UsageSource, now: Long) {
     }
 
     if (loggingIn) {
-        LoginDialog(
-            source = source,
-            onDismiss = { loggingIn = false },
-            onLoggedIn = { cookie ->
-                loggingIn = false
-                scope.launch {
-                    source.saveLogin(context, cookie)
-                    UsageSource.endLogin()
-                    UsageScheduler.schedule(context)
-                    UsageScheduler.refreshNow(context)
-                }
-            },
-        )
+        val onLoggedIn = { cookie: String ->
+            loggingIn = false
+            scope.launch {
+                source.saveLogin(context, cookie)
+                UsageSource.endLogin()
+                UsageScheduler.schedule(context)
+                UsageScheduler.refreshNow(context)
+            }
+            Unit
+        }
+        if (source.sessionPageUrl != null) {
+            PasteLoginDialog(source, onDismiss = { loggingIn = false }, onLoggedIn = onLoggedIn)
+        } else {
+            LoginDialog(source, onDismiss = { loggingIn = false }, onLoggedIn = onLoggedIn)
+        }
     }
+}
+
+/** 内嵌网页登录不了时：在手机浏览器里打开会话页，把内容粘贴回来。 */
+@Composable
+private fun PasteLoginDialog(source: UsageSource, onDismiss: () -> Unit, onLoggedIn: (String) -> Unit) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var text by remember { mutableStateOf("") }
+    var failed by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(source.loginRes)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.codex_paste_steps))
+                OutlinedButton(onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(source.sessionPageUrl)))
+                }) { Text(stringResource(R.string.codex_paste_open)) }
+                OutlinedButton(onClick = {
+                    text = clipboard.getText()?.text.orEmpty()
+                    failed = false
+                }) { Text(stringResource(R.string.codex_paste_clipboard)) }
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = {
+                        text = it
+                        failed = false
+                    },
+                    maxLines = 3,
+                    isError = failed,
+                    label = { Text(stringResource(R.string.codex_paste_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (failed) Text(stringResource(R.string.codex_paste_error), color = MaterialTheme.colorScheme.error)
+                Text(
+                    stringResource(R.string.codex_paste_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val cookie = source.cookieFromPaste(text)
+                if (cookie != null) onLoggedIn(cookie) else failed = true
+            }) { Text(stringResource(R.string.routine_confirm)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** 登录页打不开时，把页面报错记进错误日志。这时还没登录，日志里没有账号信息。 */

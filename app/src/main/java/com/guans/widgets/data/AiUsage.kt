@@ -49,6 +49,12 @@ abstract class UsageSource(
 
     protected abstract fun parse(usage: JSONObject): Usage
 
+    /** 内嵌网页登录不了的网站，改为在浏览器里打开这个页面，把内容粘贴回来。 */
+    open val sessionPageUrl: String? = null
+
+    /** 从粘贴的内容里取出登录 Cookie；内容不对时返回 null。 */
+    open fun cookieFromPaste(text: String): String? = null
+
     data class Usage(val sessionReset: Long, val sessionPercent: Int, val weeklyReset: Long, val weeklyPercent: Int)
 
     fun prefs(context: Context): SharedPreferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
@@ -280,6 +286,21 @@ object CodexUsage : UsageSource(
     loginRes = R.string.codex_login,
 ) {
     private const val DAY_SECONDS = 86_400
+    private const val SESSION_COOKIE = "__Secure-next-auth.session-token"
+
+    /** 网站的 Cookie 超过单个上限时，会拆成 .0、.1 分段保存。 */
+    private const val COOKIE_CHUNK = 3_900
+
+    override val sessionPageUrl = "https://chatgpt.com/api/auth/session"
+
+    override fun cookieFromPaste(text: String): String? {
+        val json = runCatching { JSONObject(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1)) }.getOrNull()
+        val token = json?.optString("sessionToken").orEmpty()
+        if (token.isEmpty()) return null
+        val chunks = token.chunked(COOKIE_CHUNK)
+        if (chunks.size == 1) return "$SESSION_COOKIE=$token"
+        return chunks.mapIndexed { i, chunk -> "$SESSION_COOKIE.$i=$chunk" }.joinToString("; ")
+    }
 
     /** 接口路径是 2026-10 在网站上实测的；访问令牌只留在页面里，不保存。 */
     override val fetchScript = """

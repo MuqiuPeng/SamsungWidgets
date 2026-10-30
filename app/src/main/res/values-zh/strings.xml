@@ -229,4 +229,10 @@
     <string name="codex_login">登录 ChatGPT</string>
     <string name="routine_codex_session">Codex 5 小时额度</string>
     <string name="routine_codex_weekly">Codex 每周额度</string>
+    <string name="codex_paste_steps">1. 在浏览器里打开会话页。如果要求登录，先登录 ChatGPT，再打开一次。\n2. 全选页面上的文字并复制。\n3. 回到这里粘贴。</string>
+    <string name="codex_paste_open">打开会话页</string>
+    <string name="codex_paste_clipboard">从剪贴板粘贴</string>
+    <string name="codex_paste_label">复制的内容</string>
+    <string name="codex_paste_error">内容里没有登录信息，请复制整个页面后重试。</string>
+    <string name="codex_paste_warning">这段内容可以完全访问你的 ChatGPT 账号，不要发给别人。粘贴后请复制别的内容，把剪贴板覆盖掉。登录一般可维持约三个月。</string>
 </resources>
