@@ -1,6 +1,11 @@
 package com.guans.widgets.widgets.routine
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -8,7 +13,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
@@ -26,6 +33,7 @@ import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
@@ -47,6 +55,7 @@ import com.guans.widgets.data.formatStatus
 import com.guans.widgets.data.LOOP_TINT_RED
 import com.guans.widgets.data.loopTintAlpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.glance.color.ColorProvider
 
 class RoutineWidget : GlanceAppWidget() {
@@ -93,6 +102,27 @@ class UndoAction : ActionCallback {
     }
 }
 
+/** 用量进度条：Glance 没有局部填充的背景，只能画成图片。 */
+private fun usageBar(context: Context, widthDp: Float, usage: Float): Bitmap {
+    val density = context.resources.displayMetrics.density
+    val width = (widthDp * density).toInt().coerceAtLeast(1)
+    val height = (USAGE_BAR_HEIGHT_DP * density).toInt()
+    val radius = USAGE_BAR_RADIUS_DP * density
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.clipPath(Path().apply { addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), radius, radius, Path.Direction.CW) })
+    canvas.drawColor(Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(0f)).toArgb())
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(usage)).toArgb() }
+    canvas.drawRect(0f, 0f, width * usage, height.toFloat(), fill)
+    return bitmap
+}
+
+private const val USAGE_BAR_HEIGHT_DP = 28
+private const val USAGE_BAR_RADIUS_DP = 10f
+
+/** 小工具左右各 16dp 内边距。 */
+private const val WIDGET_PADDING_DP = 32f
+
 @Composable
 private fun Content(state: Preferences) {
     val context = LocalContext.current
@@ -100,6 +130,7 @@ private fun Content(state: Preferences) {
     state[RoutineKeys.TICK]
     val now = System.currentTimeMillis()
     val routines = Routines.all(context)
+    val rowWidth = LocalSize.current.width.value - WIDGET_PADDING_DP
     val undo = Routines.pendingUndo(context, now)
     val openApp = actionStartActivity<MainActivity>(actionParametersOf(MainActivity.DESTINATION to MainActivity.ROUTINES))
 
@@ -134,7 +165,10 @@ private fun Content(state: Preferences) {
                     val elapsed = routine.elapsed(now)
                     val tint = routine.loopProgress(now)?.let { Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(it)) }
                     // 倒计时条目底色随本轮进度逐渐变红；其他条目留同样的内边距，文字对齐
-                    val rowBackground = if (tint != null) {
+                    val usage = routine.usage(now)
+                    val rowBackground = if (usage != null) {
+                        GlanceModifier.background(ImageProvider(usageBar(context, rowWidth, usage)), ContentScale.FillBounds)
+                    } else if (tint != null) {
                         GlanceModifier.background(ColorProvider(day = tint, night = tint)).cornerRadius(10.dp)
                     } else {
                         GlanceModifier

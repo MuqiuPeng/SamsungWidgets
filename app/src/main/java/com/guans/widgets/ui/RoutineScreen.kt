@@ -50,6 +50,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -253,8 +255,17 @@ private fun RoutineRow(
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     val tint = routine.loopProgress(now)?.let { Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(it)) }
+    val usage = routine.usage(now)
     ListItem(
-        colors = ListItemDefaults.colors(containerColor = tint ?: Color.Transparent),
+        modifier = if (usage != null) {
+            Modifier.drawBehind {
+                drawRect(Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(0f)))
+                drawRect(Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(usage)), size = Size(size.width * usage, size.height))
+            }
+        } else {
+            Modifier
+        },
+        colors = ListItemDefaults.colors(containerColor = if (usage != null) Color.Transparent else tint ?: Color.Transparent),
         leadingContent = handle,
         headlineContent = { Text(stringResource(routine.preset.nameRes)) },
         supportingContent = {

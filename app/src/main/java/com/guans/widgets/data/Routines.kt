@@ -73,6 +73,9 @@ data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: 
         return lastDone + rounds * preset.loopMs
     }
 
+    /** 本轮真实用量（0 到 1）；窗口已结束或没有真实数据时为 null。 */
+    fun usage(now: Long): Float? = live?.takeIf { it.resetAt > now }?.let { (it.percent / 100f).coerceIn(0f, 1f) }
+
     /** 本轮倒计时已走过的比例（0 刚开始，接近 1 快重置）；不是倒计时或没开始时为 null。 */
     fun loopProgress(now: Long): Float? {
         val reset = nextReset(now) ?: return null

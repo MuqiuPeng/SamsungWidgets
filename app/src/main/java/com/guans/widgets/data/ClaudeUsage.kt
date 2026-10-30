@@ -21,7 +21,7 @@ import java.time.OffsetDateTime
 import kotlin.coroutines.resume
 
 /** 额度的真实重置时间；小工具到点后显示 idleRes。failed 表示最近一次读取失败，此时退回手动计时。 */
-data class LiveReset(val resetAt: Long, @StringRes val idleRes: Int, val failed: Boolean)
+data class LiveReset(val resetAt: Long, val percent: Int, @StringRes val idleRes: Int, val failed: Boolean)
 
 /**
  * 读取 claude.ai 用量页背后的接口，拿到 5 小时和每周额度的真实重置时间。
@@ -88,9 +88,9 @@ object ClaudeUsage {
     fun live(context: Context, preset: RoutinePreset): LiveReset? {
         if (!connected(context)) return null
         val cached = cached(context)
-        val reset = when (preset) {
-            RoutinePreset.CLAUDE_SESSION -> cached.sessionReset
-            RoutinePreset.CLAUDE_WEEKLY -> cached.weeklyReset
+        val (reset, percent) = when (preset) {
+            RoutinePreset.CLAUDE_SESSION -> cached.sessionReset to cached.sessionPercent
+            RoutinePreset.CLAUDE_WEEKLY -> cached.weeklyReset to cached.weeklyPercent
             else -> return null
         }
         val idle = when (cached.error) {
@@ -98,7 +98,7 @@ object ClaudeUsage {
             ERROR_LOGIN -> R.string.claude_relogin
             else -> R.string.claude_unavailable
         }
-        return LiveReset(reset, idle, failed = cached.error != null)
+        return LiveReset(reset, percent, idle, failed = cached.error != null)
     }
 
     // ---------- 登录
