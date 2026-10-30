@@ -7,13 +7,17 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.guans.widgets.data.ClaudeUsage
+import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
 import java.util.concurrent.TimeUnit
 
@@ -27,6 +31,39 @@ class RoutineTickWorker(context: Context, params: WorkerParameters) : CoroutineW
     override suspend fun doWork(): Result {
         RoutineTicker.pushAll(applicationContext)
         return Result.success()
+    }
+}
+
+class ClaudeRefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        ClaudeUsage.refresh(applicationContext)
+        RoutineTicker.pushAll(applicationContext)
+        return Result.success()
+    }
+}
+
+/** 关联 claude.ai 后定时读取真实额度；新窗口开始后大约 15 分钟内能读到。 */
+object ClaudeScheduler {
+    private const val PERIODIC = "claude_usage"
+    private const val NOW = "claude_usage_now"
+
+    private val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+
+    fun schedule(context: Context) {
+        val request = PeriodicWorkRequestBuilder<ClaudeRefreshWorker>(15, TimeUnit.MINUTES).setConstraints(network).build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
+    }
+
+    fun refreshNow(context: Context) {
+        val request = OneTimeWorkRequestBuilder<ClaudeRefreshWorker>().setConstraints(network).build()
+        WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    fun cancel(context: Context) {
+        WorkManager.getInstance(context).apply {
+            cancelUniqueWork(PERIODIC)
+            cancelUniqueWork(NOW)
+        }
     }
 }
 
@@ -50,6 +87,16 @@ object RoutineTicker {
             .setInitialDelay(Routines.UNDO_WINDOW_MS + 5_000, TimeUnit.MILLISECONDS)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(UNDO_EXPIRE, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    /** 点一个事项：真实额度只需要重新读取；读取失败时才退回手动计时。 */
+    fun tap(context: Context, preset: RoutinePreset) {
+        val live = ClaudeUsage.live(context, preset)
+        if (live == null || live.failed) {
+            Routines.markDone(context, preset)
+            expireUndoLater(context)
+        }
+        if (live != null) ClaudeScheduler.refreshNow(context)
     }
 
     fun cancel(context: Context) {

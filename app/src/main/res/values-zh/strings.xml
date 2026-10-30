@@ -135,8 +135,8 @@
     <string name="routine_left_hm">剩 %1$d:%2$02d</string>
     <string name="routine_left_dh">剩 %1$d 天 %2$d 时</string>
     <string name="routine_loop_started">本轮开始于 %1$s</string>
-    <string name="routine_loop_hint_hours">每 %1$d 小时循环一次，新一轮开始时点一下对齐</string>
-    <string name="routine_loop_hint_days">每 %1$d 天循环一次，新一轮开始时点一下对齐</string>
+    <string name="routine_loop_hint_hours">点一下开始 %1$d 小时；登录 claude.ai 后自动读取真实时间</string>
+    <string name="routine_loop_hint_days">每 %1$d 天循环一次；登录 claude.ai 后自动读取真实时间</string>
     <string name="routine_set_start">修改开始时间</string>
     <string name="routine_loop_restart">从现在开始新一轮</string>
     <string name="section_widget_style">小工具背景</string>
@@ -210,4 +210,18 @@
     <string name="notify_ci_failed">%1$s：Actions 失败</string>
     <string name="notify_ci_fixed">%1$s：Actions 已恢复</string>
     <string name="notify_release">%1$s 发布了 %2$s</string>
+    <string name="section_claude">Claude 真实额度</string>
+    <string name="claude_section_note">从 claude.ai 读取准确的重置时间。这是非公开接口，随时可能失效。</string>
+    <string name="claude_login">登录 claude.ai</string>
+    <string name="claude_login_hint">不登录时，点一下额度手动开始计时。</string>
+    <string name="claude_login_note">请在此页面自己登录。Google 登录可能用不了，失败时请改用邮箱。</string>
+    <string name="claude_relogin">需重新登录</string>
+    <string name="claude_relogin_long">登录已过期，重新登录后才能继续读取。</string>
+    <string name="claude_unavailable">无法获取</string>
+    <string name="claude_failed">读取失败，显示的是上一次的结果。</string>
+    <string name="claude_idle">未开始</string>
+    <string name="claude_disconnect">移除登录</string>
+    <string name="claude_session_line">5 小时：%1$s · 已用 %2$d%%</string>
+    <string name="claude_weekly_line">每周：%1$s · 已用 %2$d%%</string>
+    <string name="routine_loop_ended">已重置，点一下开始</string>
 </resources>

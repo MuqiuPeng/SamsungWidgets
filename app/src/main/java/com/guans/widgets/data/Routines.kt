@@ -7,7 +7,8 @@ import com.guans.widgets.R
 
 /**
  * 可选的日常事项。id 写进存储，不要改；名字随语言变化。
- * loopMs > 0 的是循环倒计时：从开始时间起每隔 loopMs 重置一次，显示距下次重置还剩多久。
+ * loopMs > 0 的是倒计时，显示距下次重置还剩多久。Claude 额度关联账号后用真实时间（见 ClaudeUsage）；
+ * 没关联时手动计时：每周额度固定循环，5 小时额度到点就停，下次用的时候再点开始。
  */
 enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, val loopMs: Long = 0L) {
     SHOWER(R.string.routine_shower, Category.CARE),
@@ -57,13 +58,17 @@ enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, va
 }
 
 /** 一个事项的当前状态。lastDone 为 0 表示还没记录过。 */
-data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: Long) {
+data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: Long, val live: LiveReset? = null) {
     fun elapsed(now: Long): Long? = if (lastDone > 0) (now - lastDone).coerceAtLeast(0) else null
 
     /** 循环倒计时的下次重置时间；没开始或不是倒计时时为 null。 */
     fun nextReset(now: Long): Long? {
+        live?.resetAt?.takeIf { it > now }?.let { return it }
+        if (live?.failed == false) return null
         if (!preset.isLoop || lastDone <= 0) return null
         if (now < lastDone) return lastDone + preset.loopMs
+        // 5 小时窗口空闲时不会自动开始下一轮
+        if (preset == RoutinePreset.CLAUDE_SESSION) return (lastDone + preset.loopMs).takeIf { it > now }
         val rounds = (now - lastDone) / preset.loopMs + 1
         return lastDone + rounds * preset.loopMs
     }
@@ -105,6 +110,7 @@ object Routines {
                 preset = preset,
                 lastDone = prefs.getLong("last_${preset.name}", 0L),
                 previous = prefs.getLong("prev_${preset.name}", 0L),
+                live = ClaudeUsage.live(context, preset),
             )
         }
     }
@@ -160,7 +166,9 @@ object Routines {
 /** 小工具和设置页右侧显示的状态：普通事项是“多久之前”，倒计时是剩余时间“剩 4:24”。 */
 fun formatStatus(context: Context, routine: Routine, now: Long): String {
     if (!routine.preset.isLoop) return formatElapsed(context, routine.elapsed(now))
-    val reset = routine.nextReset(now) ?: return context.getString(R.string.routine_loop_not_started)
+    val reset = routine.nextReset(now) ?: return context.getString(
+        routine.live?.idleRes ?: if (routine.lastDone > 0) R.string.routine_loop_ended else R.string.routine_loop_not_started,
+    )
     return formatRemaining(context, reset - now)
 }
 

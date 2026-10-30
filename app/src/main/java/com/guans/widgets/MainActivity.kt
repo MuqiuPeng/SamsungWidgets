@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
+import com.guans.widgets.data.ClaudeUsage
 import com.guans.widgets.data.ErrorLog
 import com.guans.widgets.data.GlassBackground
 import com.guans.widgets.data.Settings
@@ -24,6 +25,7 @@ import com.guans.widgets.widgets.exchangerate.ExchangeRateWidget
 import com.guans.widgets.widgets.exchangerate.ExchangeRateWidgetReceiver
 import com.guans.widgets.widgets.github.GitHubUpdater
 import com.guans.widgets.widgets.github.GitHubWidgetReceiver
+import com.guans.widgets.widgets.routine.ClaudeScheduler
 import com.guans.widgets.widgets.routine.RoutineTicker
 import com.guans.widgets.widgets.routine.RoutineWidgetReceiver
 import com.guans.widgets.widgets.common.redrawAllWidgets
@@ -51,6 +53,10 @@ class MainActivity : AppCompatActivity() {
         }
         // 老版本升级上来时补上定时重绘
         if (RoutineTicker.hasWidgets(this)) RoutineTicker.schedule(this)
+        if (ClaudeUsage.connected(this)) {
+            ClaudeScheduler.schedule(this)
+            ClaudeScheduler.refreshNow(this)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

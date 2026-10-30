@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.guans.widgets.R
+import com.guans.widgets.data.ClaudeUsage
 import com.guans.widgets.data.Routine
 import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
@@ -63,6 +64,7 @@ import com.guans.widgets.data.formatRemaining
 import com.guans.widgets.data.formatStatus
 import com.guans.widgets.data.LOOP_TINT_RED
 import com.guans.widgets.data.loopTintAlpha
+import com.guans.widgets.widgets.routine.ClaudeScheduler
 import com.guans.widgets.widgets.routine.RoutineTicker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,6 +86,9 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var picking by remember { mutableStateOf(false) }
     var timeFor by remember { mutableStateOf<Routine?>(null) }
+    var claudeConnected by remember { mutableStateOf(ClaudeUsage.connected(context)) }
+    var claude by remember { mutableStateOf(ClaudeUsage.cached(context)) }
+    var loggingIn by remember { mutableStateOf(false) }
 
     // 小工具上点过之后，这里跟着更新；页面开着时每分钟重算一次“多久之前”
     DisposableEffect(Unit) {
@@ -93,9 +98,21 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             now = System.currentTimeMillis()
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+        val claudePrefs = ClaudeUsage.prefs(context)
+        val claudeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            claudeConnected = ClaudeUsage.connected(context)
+            claude = ClaudeUsage.cached(context)
+            routines = Routines.all(context)
+            now = System.currentTimeMillis()
+        }
+        claudePrefs.registerOnSharedPreferenceChangeListener(claudeListener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+            claudePrefs.unregisterOnSharedPreferenceChangeListener(claudeListener)
+        }
     }
     LaunchedEffect(Unit) {
+        if (claudeConnected) ClaudeScheduler.refreshNow(context)
         while (true) {
             delay(60_000)
             now = System.currentTimeMillis()
@@ -133,7 +150,7 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                         routine = routine,
                         now = now,
                         handle = handle,
-                        onDone = { changed { Routines.markDone(context, routine.preset) } },
+                        onDone = { changed { RoutineTicker.tap(context, routine.preset) } },
                         onSetTime = { timeFor = routine },
                         onUndo = { changed { Routines.undo(context, routine.preset) } },
                         onDelete = { changed { Routines.remove(context, routine.preset) } },
@@ -157,6 +174,23 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             }
         }
 
+        if (routines.any { it.preset.isLoop }) {
+            item { SectionHeader(stringResource(R.string.section_claude), stringResource(R.string.claude_section_note)) }
+            item {
+                ClaudeUsageCard(
+                    connected = claudeConnected,
+                    cached = claude,
+                    now = now,
+                    onLogin = { loggingIn = true },
+                    onRefresh = { ClaudeScheduler.refreshNow(context) },
+                    onDisconnect = {
+                        ClaudeScheduler.cancel(context)
+                        changed { ClaudeUsage.disconnect(context) }
+                    },
+                )
+            }
+        }
+
         item {
             SectionHeader(
                 stringResource(R.string.section_widget),
@@ -171,6 +205,19 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         }
     }
 
+    if (loggingIn) {
+        ClaudeLoginDialog(
+            onDismiss = { loggingIn = false },
+            onLoggedIn = { cookie ->
+                loggingIn = false
+                scope.launch {
+                    ClaudeUsage.saveLogin(context, cookie)
+                    ClaudeScheduler.schedule(context)
+                    ClaudeScheduler.refreshNow(context)
+                }
+            },
+        )
+    }
     if (picking) {
         RoutinePicker(
             existing = routines.map { it.preset }.toSet(),
@@ -214,7 +261,7 @@ private fun RoutineRow(
             Column {
                 val started = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                 val last = if (routine.preset.isLoop) {
-                    if (routine.lastDone > 0) {
+                    if (routine.lastDone > 0 && routine.live?.failed != false) {
                         formatStatus(context, routine, now) + "\n" +
                             stringResource(R.string.routine_loop_started, started.format(Date(routine.lastDone)))
                     } else {
@@ -243,13 +290,16 @@ private fun RoutineRow(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(stringResource(if (routine.preset.isLoop) R.string.routine_set_start else R.string.routine_set_time))
-                        },
-                        onClick = { menu = false; onSetTime() },
-                    )
-                    if (routine.lastDone > 0) {
+                    val manual = routine.live?.failed != false
+                    if (manual) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(stringResource(if (routine.preset.isLoop) R.string.routine_set_start else R.string.routine_set_time))
+                            },
+                            onClick = { menu = false; onSetTime() },
+                        )
+                    }
+                    if (routine.lastDone > 0 && manual) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.routine_undo)) }, onClick = { menu = false; onUndo() })
                     }
                     DropdownMenuItem(

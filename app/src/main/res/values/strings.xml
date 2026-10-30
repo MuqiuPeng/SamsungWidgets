@@ -138,8 +138,8 @@
     <string name="routine_left_hm">%1$d:%2$02d left</string>
     <string name="routine_left_dh">%1$dd %2$dh left</string>
     <string name="routine_loop_started">This round started %1$s</string>
-    <string name="routine_loop_hint_hours">Repeats every %1$d hours. Tap it when a new round starts.</string>
-    <string name="routine_loop_hint_days">Repeats every %1$d days. Tap it when a new round starts.</string>
+    <string name="routine_loop_hint_hours">Tap to start %1$d hours. Signing in to claude.ai reads the real time.</string>
+    <string name="routine_loop_hint_days">Repeats every %1$d days. Signing in to claude.ai reads the real time.</string>
     <string name="routine_set_start">Change start time</string>
     <string name="routine_loop_restart">Start a new round now</string>
     <string name="section_widget_style">Widget background</string>
@@ -213,4 +213,18 @@
     <string name="notify_ci_failed">%1$s: Actions failed</string>
     <string name="notify_ci_fixed">%1$s: Actions passing again</string>
     <string name="notify_release">%1$s released %2$s</string>
+    <string name="section_claude">Real Claude limits</string>
+    <string name="claude_section_note">Reads the exact reset times from claude.ai. This uses an unofficial interface and may stop working.</string>
+    <string name="claude_login">Sign in to claude.ai</string>
+    <string name="claude_login_hint">Without signing in, tap a limit to start it by hand.</string>
+    <string name="claude_login_note">Sign in yourself on this page. Google sign-in may not work here, so use email if it fails.</string>
+    <string name="claude_relogin">Sign in again</string>
+    <string name="claude_relogin_long">The sign-in has expired. Sign in again to keep reading limits.</string>
+    <string name="claude_unavailable">Unavailable</string>
+    <string name="claude_failed">Could not read limits. Showing the last result.</string>
+    <string name="claude_idle">Not started</string>
+    <string name="claude_disconnect">Remove sign-in</string>
+    <string name="claude_session_line">5h: %1$s · %2$d%% used</string>
+    <string name="claude_weekly_line">Weekly: %1$s · %2$d%% used</string>
+    <string name="routine_loop_ended">Reset, tap to start</string>
 </resources>

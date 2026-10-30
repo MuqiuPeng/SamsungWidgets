@@ -80,8 +80,7 @@ class RoutineWidgetReceiver : GlanceAppWidgetReceiver() {
 class MarkDoneAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val preset = parameters[RoutineKeys.ID]?.let(RoutinePreset::of) ?: return
-        Routines.markDone(context, preset)
-        RoutineTicker.expireUndoLater(context)
+        RoutineTicker.tap(context, preset)
         RoutineTicker.pushAll(context)
     }
 }
