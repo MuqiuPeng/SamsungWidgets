@@ -16,7 +16,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.guans.widgets.data.RoutinePreset
+import com.guans.widgets.data.Routine
 import com.guans.widgets.data.Routines
 import com.guans.widgets.data.UsageSource
 import java.util.concurrent.TimeUnit
@@ -90,10 +90,10 @@ object RoutineTicker {
     }
 
     /** 点一个事项：真实额度只需要重新读取；读取失败时才退回手动计时。 */
-    fun tap(context: Context, preset: RoutinePreset) {
-        val live = UsageSource.live(context, preset)
+    fun tap(context: Context, routine: Routine) {
+        val live = routine.live
         if (live == null || live.failed) {
-            Routines.markDone(context, preset)
+            Routines.markDone(context, routine.id)
             expireUndoLater(context)
         }
         if (live != null) UsageScheduler.refreshNow(context)

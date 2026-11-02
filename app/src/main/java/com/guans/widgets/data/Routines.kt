@@ -6,71 +6,43 @@ import androidx.annotation.StringRes
 import com.guans.widgets.R
 
 /**
- * 可选的日常事项。id 写进存储，不要改；名字随语言变化。
- * loopMs > 0 的是倒计时，显示距下次重置还剩多久。AI 额度关联账号后用真实时间（见 UsageSource）；
+ * 有特殊行为的事项：AI 额度的循环倒计时。其他事项都是用户自己输入的名字。
+ * id 写进存储，不要改。显示距下次重置还剩多久；关联账号后用真实时间（见 UsageSource），
  * 没关联时手动计时：每周额度固定循环，5 小时额度到点就停，下次用的时候再点开始。
  */
-enum class RoutinePreset(@StringRes val nameRes: Int, val category: Category, val loopMs: Long = 0L) {
-    SHOWER(R.string.routine_shower, Category.CARE),
-    WASH_HAIR(R.string.routine_wash_hair, Category.CARE),
-    SKINCARE(R.string.routine_skincare, Category.CARE),
-    FACE_MASK(R.string.routine_face_mask, Category.CARE),
-    SHAVE(R.string.routine_shave, Category.CARE),
-    NAILS(R.string.routine_nails, Category.CARE),
-    HAIRCUT(R.string.routine_haircut, Category.CARE),
-    TOOTHBRUSH(R.string.routine_toothbrush, Category.CARE),
-
-    LAUNDRY(R.string.routine_laundry, Category.HOME),
-    BEDDING(R.string.routine_bedding, Category.HOME),
-    TOWELS(R.string.routine_towels, Category.HOME),
-    CLEAN(R.string.routine_clean, Category.HOME),
-    MOP(R.string.routine_mop, Category.HOME),
-    TRASH(R.string.routine_trash, Category.HOME),
-    PLANTS(R.string.routine_plants, Category.HOME),
-    FRIDGE(R.string.routine_fridge, Category.HOME),
-
-    WORKOUT(R.string.routine_workout, Category.HEALTH),
-    WEIGH(R.string.routine_weigh, Category.HEALTH),
-    VITAMINS(R.string.routine_vitamins, Category.HEALTH),
-    WATER_FILTER(R.string.routine_water_filter, Category.HEALTH),
-
-    CALL_FAMILY(R.string.routine_call_family, Category.LIFE),
-    PET_BATH(R.string.routine_pet_bath, Category.LIFE),
-    CAR_WASH(R.string.routine_car_wash, Category.LIFE),
-    BACKUP(R.string.routine_backup, Category.LIFE),
-
-    CLAUDE_SESSION(R.string.routine_claude_session, Category.LOOP, 5 * HOUR_MS),
-    CLAUDE_WEEKLY(R.string.routine_claude_weekly, Category.LOOP, 7 * DAY_MS),
-    CODEX_SESSION(R.string.routine_codex_session, Category.LOOP, 5 * HOUR_MS),
-    CODEX_WEEKLY(R.string.routine_codex_weekly, Category.LOOP, 7 * DAY_MS);
-
-    val isLoop: Boolean get() = loopMs > 0
+enum class RoutinePreset(@StringRes val nameRes: Int, val loopMs: Long) {
+    CLAUDE_SESSION(R.string.routine_claude_session, 5 * HOUR_MS),
+    CLAUDE_WEEKLY(R.string.routine_claude_weekly, 7 * DAY_MS),
+    CODEX_SESSION(R.string.routine_codex_session, 5 * HOUR_MS),
+    CODEX_WEEKLY(R.string.routine_codex_weekly, 7 * DAY_MS);
 
     /** 空闲时不会自动开始下一轮的窗口。 */
     val stopsAtReset: Boolean get() = this == CLAUDE_SESSION || this == CODEX_SESSION
-
-    enum class Category(@StringRes val nameRes: Int) {
-        CARE(R.string.routine_cat_care),
-        HOME(R.string.routine_cat_home),
-        HEALTH(R.string.routine_cat_health),
-        LIFE(R.string.routine_cat_life),
-        LOOP(R.string.routine_cat_loop),
-    }
 
     companion object {
         fun of(id: String): RoutinePreset? = entries.firstOrNull { it.name == id }
     }
 }
 
-/** 一个事项的当前状态。lastDone 为 0 表示还没记录过。 */
-data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: Long, val live: LiveReset? = null) {
+/** 一个事项的当前状态。preset 为 null 的是普通事项；lastDone 为 0 表示还没记录过。 */
+data class Routine(
+    val id: String,
+    val name: String,
+    val preset: RoutinePreset?,
+    val lastDone: Long,
+    val previous: Long,
+    val live: LiveReset? = null,
+) {
+    val isLoop: Boolean get() = preset != null
+
     fun elapsed(now: Long): Long? = if (lastDone > 0) (now - lastDone).coerceAtLeast(0) else null
 
     /** 循环倒计时的下次重置时间；没开始或不是倒计时时为 null。 */
     fun nextReset(now: Long): Long? {
+        val preset = preset ?: return null
         live?.resetAt?.takeIf { it > now }?.let { return it }
         if (live?.failed == false) return null
-        if (!preset.isLoop || lastDone <= 0) return null
+        if (lastDone <= 0) return null
         if (now < lastDone) return lastDone + preset.loopMs
         // 5 小时窗口空闲时不会自动开始下一轮
         if (preset.stopsAtReset) return (lastDone + preset.loopMs).takeIf { it > now }
@@ -83,8 +55,9 @@ data class Routine(val preset: RoutinePreset, val lastDone: Long, val previous: 
 
     /** 本轮倒计时已走过的比例（0 刚开始，接近 1 快重置）；不是倒计时或没开始时为 null。 */
     fun loopProgress(now: Long): Float? {
+        val loopMs = preset?.loopMs ?: return null
         val reset = nextReset(now) ?: return null
-        return (1f - (reset - now).toFloat() / preset.loopMs).coerceIn(0f, 1f)
+        return (1f - (reset - now).toFloat() / loopMs).coerceIn(0f, 1f)
     }
 }
 
@@ -101,70 +74,123 @@ private const val MINUTE_MS = 60 * 1000L
 object Routines {
     private const val PREFS = "routines"
     const val MAX_ITEMS = 8
+    const val MAX_NAME = 20
 
     /** 误点后可以撤销的时间窗口。 */
     const val UNDO_WINDOW_MS = 5 * 60 * 1000L
 
-    private val DEFAULT = listOf(RoutinePreset.SHOWER, RoutinePreset.SKINCARE, RoutinePreset.WASH_HAIR, RoutinePreset.BEDDING)
+    private val DEFAULT = listOf("SHOWER", "SKINCARE", "WASH_HAIR", "BEDDING")
+
+    /** 旧版本的固定事项：存储里还是这些 id，名字第一次读到时按当时的语言写进存储。 */
+    private val LEGACY_NAMES = mapOf(
+        "SHOWER" to R.string.routine_shower,
+        "WASH_HAIR" to R.string.routine_wash_hair,
+        "SKINCARE" to R.string.routine_skincare,
+        "FACE_MASK" to R.string.routine_face_mask,
+        "SHAVE" to R.string.routine_shave,
+        "NAILS" to R.string.routine_nails,
+        "HAIRCUT" to R.string.routine_haircut,
+        "TOOTHBRUSH" to R.string.routine_toothbrush,
+        "LAUNDRY" to R.string.routine_laundry,
+        "BEDDING" to R.string.routine_bedding,
+        "TOWELS" to R.string.routine_towels,
+        "CLEAN" to R.string.routine_clean,
+        "MOP" to R.string.routine_mop,
+        "TRASH" to R.string.routine_trash,
+        "PLANTS" to R.string.routine_plants,
+        "FRIDGE" to R.string.routine_fridge,
+        "WORKOUT" to R.string.routine_workout,
+        "WEIGH" to R.string.routine_weigh,
+        "VITAMINS" to R.string.routine_vitamins,
+        "WATER_FILTER" to R.string.routine_water_filter,
+        "CALL_FAMILY" to R.string.routine_call_family,
+        "PET_BATH" to R.string.routine_pet_bath,
+        "CAR_WASH" to R.string.routine_car_wash,
+        "BACKUP" to R.string.routine_backup,
+    )
 
     fun prefs(context: Context): SharedPreferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    private fun ids(context: Context): List<String> =
+        prefs(context).getString("items", null)?.split(',')?.filter { it.isNotEmpty() } ?: DEFAULT
+
     fun all(context: Context): List<Routine> {
         val prefs = prefs(context)
-        val ids = prefs.getString("items", null)?.split(',')?.mapNotNull(RoutinePreset::of)
-            ?: DEFAULT
-        return ids.map { preset ->
+        return ids(context).mapNotNull { id ->
+            val preset = RoutinePreset.of(id)
+            val name = prefs.getString("name_$id", null)
+                ?: preset?.let { context.getString(it.nameRes) }
+                ?: LEGACY_NAMES[id]?.let { res ->
+                    context.getString(res).also { prefs.edit().putString("name_$id", it).apply() }
+                }
+                ?: return@mapNotNull null
             Routine(
+                id = id,
+                name = name,
                 preset = preset,
-                lastDone = prefs.getLong("last_${preset.name}", 0L),
-                previous = prefs.getLong("prev_${preset.name}", 0L),
-                live = UsageSource.live(context, preset),
+                lastDone = prefs.getLong("last_$id", 0L),
+                previous = prefs.getLong("prev_$id", 0L),
+                live = preset?.let { UsageSource.live(context, it) },
             )
         }
     }
 
-    fun setOrder(context: Context, presets: List<RoutinePreset>) {
-        prefs(context).edit().putString("items", presets.take(MAX_ITEMS).joinToString(",") { it.name }).apply()
+    fun setOrder(context: Context, ids: List<String>) {
+        prefs(context).edit().putString("items", ids.take(MAX_ITEMS).joinToString(",")).apply()
+    }
+
+    /** 新增一个自己起名的事项。 */
+    fun add(context: Context, name: String) {
+        val current = ids(context)
+        if (current.size >= MAX_ITEMS) return
+        val id = "u" + System.currentTimeMillis().toString(36)
+        prefs(context).edit().putString("name_$id", name.trim().take(MAX_NAME)).apply()
+        setOrder(context, current + id)
     }
 
     fun add(context: Context, preset: RoutinePreset) {
-        val current = all(context).map { it.preset }
-        if (preset in current || current.size >= MAX_ITEMS) return
-        setOrder(context, current + preset)
+        val current = ids(context)
+        if (preset.name in current || current.size >= MAX_ITEMS) return
+        setOrder(context, current + preset.name)
     }
 
-    fun remove(context: Context, preset: RoutinePreset) {
-        setOrder(context, all(context).map { it.preset } - preset)
+    fun rename(context: Context, id: String, name: String) {
+        prefs(context).edit().putString("name_$id", name.trim().take(MAX_NAME)).apply()
+    }
+
+    fun remove(context: Context, id: String) {
+        setOrder(context, ids(context) - id)
         prefs(context).edit()
-            .remove("last_${preset.name}")
-            .remove("prev_${preset.name}")
+            .remove("name_$id")
+            .remove("last_$id")
+            .remove("prev_$id")
             .apply()
     }
 
     /** 记为在 time 完成；旧的时间留作撤销。 */
-    fun markDone(context: Context, preset: RoutinePreset, time: Long = System.currentTimeMillis()) {
+    fun markDone(context: Context, id: String, time: Long = System.currentTimeMillis()) {
         val prefs = prefs(context)
         prefs.edit()
-            .putLong("prev_${preset.name}", prefs.getLong("last_${preset.name}", 0L))
-            .putLong("last_${preset.name}", time)
-            .putString("undo_id", preset.name)
+            .putLong("prev_$id", prefs.getLong("last_$id", 0L))
+            .putLong("last_$id", time)
+            .putString("undo_id", id)
             .putLong("undo_at", System.currentTimeMillis())
             .apply()
     }
 
     /** 小工具上可撤销的最近一次点击；超过时间窗口返回 null。 */
-    fun pendingUndo(context: Context, now: Long = System.currentTimeMillis()): RoutinePreset? {
+    fun pendingUndo(context: Context, now: Long = System.currentTimeMillis()): String? {
         val prefs = prefs(context)
         if (now - prefs.getLong("undo_at", 0L) > UNDO_WINDOW_MS) return null
-        return prefs.getString("undo_id", null)?.let(RoutinePreset::of)
+        return prefs.getString("undo_id", null)
     }
 
     /** 恢复到上一次完成的时间。 */
-    fun undo(context: Context, preset: RoutinePreset) {
+    fun undo(context: Context, id: String) {
         val prefs = prefs(context)
         prefs.edit()
-            .putLong("last_${preset.name}", prefs.getLong("prev_${preset.name}", 0L))
-            .putLong("prev_${preset.name}", 0L)
+            .putLong("last_$id", prefs.getLong("prev_$id", 0L))
+            .putLong("prev_$id", 0L)
             .remove("undo_id")
             .remove("undo_at")
             .apply()
@@ -173,7 +199,7 @@ object Routines {
 
 /** 小工具和设置页右侧显示的状态：普通事项是“多久之前”，倒计时是剩余时间“剩 4:24”。 */
 fun formatStatus(context: Context, routine: Routine, now: Long): String {
-    if (!routine.preset.isLoop) return formatElapsed(context, routine.elapsed(now))
+    if (!routine.isLoop) return formatElapsed(context, routine.elapsed(now))
     val reset = routine.nextReset(now) ?: return context.getString(
         routine.live?.idleRes ?: if (routine.lastDone > 0) R.string.routine_loop_ended else R.string.routine_loop_not_started,
     )

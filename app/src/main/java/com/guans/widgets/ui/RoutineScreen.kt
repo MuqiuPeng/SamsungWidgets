@@ -1,8 +1,9 @@
 package com.guans.widgets.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,12 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -30,14 +31,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,6 +50,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -88,6 +90,7 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var picking by remember { mutableStateOf(false) }
     var timeFor by remember { mutableStateOf<Routine?>(null) }
+    var renaming by remember { mutableStateOf<Routine?>(null) }
 
     // 小工具上点过之后，这里跟着更新；页面开着时每分钟重算一次“多久之前”
     DisposableEffect(Unit) {
@@ -134,18 +137,19 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                 }
                 ReorderableColumn(
                     items = routines,
-                    key = { it.preset.name },
+                    key = { it.id },
                     onMove = { from, to -> routines = routines.toMutableList().apply { add(to, removeAt(from)) } },
-                    onDragEnd = { changed { Routines.setOrder(context, routines.map { it.preset }) } },
+                    onDragEnd = { changed { Routines.setOrder(context, routines.map { it.id }) } },
                 ) { routine, handle ->
                     RoutineRow(
                         routine = routine,
                         now = now,
                         handle = handle,
-                        onDone = { changed { RoutineTicker.tap(context, routine.preset) } },
+                        onDone = { changed { RoutineTicker.tap(context, routine) } },
                         onSetTime = { timeFor = routine },
-                        onUndo = { changed { Routines.undo(context, routine.preset) } },
-                        onDelete = { changed { Routines.remove(context, routine.preset) } },
+                        onRename = { renaming = routine },
+                        onUndo = { changed { Routines.undo(context, routine.id) } },
+                        onDelete = { changed { Routines.remove(context, routine.id) } },
                     )
                 }
             }
@@ -166,7 +170,7 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             }
         }
 
-        UsageSource.all.filter { source -> routines.any { source.owns(it.preset) } }.forEach { source ->
+        UsageSource.all.filter { source -> routines.any { r -> r.preset?.let(source::owns) == true } }.forEach { source ->
             item { SectionHeader(stringResource(source.sectionRes), stringResource(source.noteRes)) }
             item { UsageCard(source, now) }
         }
@@ -186,12 +190,27 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     }
 
     if (picking) {
-        RoutinePicker(
-            existing = routines.map { it.preset }.toSet(),
+        AddRoutineDialog(
+            existing = routines.mapNotNull { it.preset }.toSet(),
             onDismiss = { picking = false },
-            onPicked = { preset ->
+            onName = { name ->
+                picking = false
+                changed { Routines.add(context, name) }
+            },
+            onPreset = { preset ->
                 picking = false
                 changed { Routines.add(context, preset) }
+            },
+        )
+    }
+    renaming?.let { routine ->
+        NameDialog(
+            title = stringResource(R.string.routine_rename),
+            initial = routine.name,
+            onDismiss = { renaming = null },
+            onDone = { name ->
+                renaming = null
+                changed { Routines.rename(context, routine.id, name) }
             },
         )
     }
@@ -201,7 +220,7 @@ fun RoutineScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
             onDismiss = { timeFor = null },
             onPicked = { time ->
                 timeFor = null
-                changed { Routines.markDone(context, routine.preset, time) }
+                changed { Routines.markDone(context, routine.id, time) }
             },
         )
     }
@@ -214,6 +233,7 @@ private fun RoutineRow(
     handle: @Composable () -> Unit,
     onDone: () -> Unit,
     onSetTime: () -> Unit,
+    onRename: () -> Unit,
     onUndo: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -232,11 +252,11 @@ private fun RoutineRow(
         },
         colors = ListItemDefaults.colors(containerColor = if (usage != null) Color.Transparent else tint ?: Color.Transparent),
         leadingContent = handle,
-        headlineContent = { Text(stringResource(routine.preset.nameRes)) },
+        headlineContent = { Text(routine.name) },
         supportingContent = {
             Column {
                 val started = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                val last = if (routine.preset.isLoop) {
+                val last = if (routine.isLoop) {
                     if (routine.lastDone > 0 && routine.live?.failed != false) {
                         formatStatus(context, routine, now) + "\n" +
                             stringResource(R.string.routine_loop_started, started.format(Date(routine.lastDone)))
@@ -258,7 +278,7 @@ private fun RoutineRow(
                     Icon(
                     Icons.Default.Check,
                     contentDescription = stringResource(
-                        if (routine.preset.isLoop) R.string.routine_loop_restart else R.string.routine_mark_done,
+                        if (routine.isLoop) R.string.routine_loop_restart else R.string.routine_mark_done,
                     ),
                 )
                 }
@@ -270,7 +290,7 @@ private fun RoutineRow(
                     if (manual) {
                         DropdownMenuItem(
                             text = {
-                                Text(stringResource(if (routine.preset.isLoop) R.string.routine_set_start else R.string.routine_set_time))
+                                Text(stringResource(if (routine.isLoop) R.string.routine_set_start else R.string.routine_set_time))
                             },
                             onClick = { menu = false; onSetTime() },
                         )
@@ -278,6 +298,7 @@ private fun RoutineRow(
                     if (routine.lastDone > 0 && manual) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.routine_undo)) }, onClick = { menu = false; onUndo() })
                     }
+                    DropdownMenuItem(text = { Text(stringResource(R.string.routine_rename)) }, onClick = { menu = false; onRename() })
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.pair_delete), color = MaterialTheme.colorScheme.error) },
                         onClick = { menu = false; onDelete() },
@@ -288,52 +309,66 @@ private fun RoutineRow(
     )
 }
 
-/** 按分类列出可选事项；已添加的不可再选。 */
-@OptIn(ExperimentalMaterial3Api::class)
+/** 新增事项：直接输入名字；AI 额度倒计时有真实数据，单独列出来点选。 */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RoutinePicker(existing: Set<RoutinePreset>, onDismiss: () -> Unit, onPicked: (RoutinePreset) -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Text(
-            stringResource(R.string.pick_routine),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-        )
-        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-            RoutinePreset.Category.entries.forEach { category ->
-                item(key = "h-${category.name}") {
-                    Text(
-                        stringResource(category.nameRes),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 4.dp),
-                    )
-                }
-                items(RoutinePreset.entries.filter { it.category == category }, key = { it.name }) { preset ->
-                    val taken = preset in existing
-                    ListItem(
-                        modifier = Modifier.clickable(enabled = !taken) { onPicked(preset) }.padding(horizontal = 8.dp),
-                        headlineContent = {
-                            Text(
-                                stringResource(preset.nameRes),
-                                color = if (taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        supportingContent = if (preset.isLoop) {
-                            { Text(loopHint(preset)) }
-                        } else {
-                            null
-                        },
-                        trailingContent = if (taken) {
-                            { Text(stringResource(R.string.pair_exists), style = MaterialTheme.typography.labelMedium) }
-                        } else {
-                            null
-                        },
-                    )
+private fun AddRoutineDialog(
+    existing: Set<RoutinePreset>,
+    onDismiss: () -> Unit,
+    onName: (String) -> Unit,
+    onPreset: (RoutinePreset) -> Unit,
+) {
+    val presets = RoutinePreset.entries.filter { it !in existing }
+    NameDialog(title = stringResource(R.string.add_routine), initial = "", onDismiss = onDismiss, onDone = onName) {
+        if (presets.isNotEmpty()) {
+            Text(
+                stringResource(R.string.routine_cat_loop),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                presets.forEach { preset ->
+                    AssistChip(onClick = { onPreset(preset) }, label = { Text(stringResource(preset.nameRes)) })
                 }
             }
         }
     }
+}
+
+/** 输入事项名字的对话框，新增和改名共用。 */
+@Composable
+private fun NameDialog(
+    title: String,
+    initial: String,
+    onDismiss: () -> Unit,
+    onDone: (String) -> Unit,
+    extra: @Composable () -> Unit = {},
+) {
+    var name by remember { mutableStateOf(initial) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it.replace("\n", "").take(Routines.MAX_NAME) },
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.routine_name_hint)) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+                extra()
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = name.isNotBlank(), onClick = { onDone(name) }) {
+                Text(stringResource(R.string.routine_confirm))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** 补记或修正上次完成的时间：先选日期（不晚于今天），再选时刻。 */
@@ -389,11 +424,4 @@ private fun LastDonePicker(initial: Long, onDismiss: () -> Unit, onPicked: (Long
             dismissButton = { TextButton(onClick = { date = null }) { Text(stringResource(R.string.back)) } },
         )
     }
-}
-
-@Composable
-private fun loopHint(preset: RoutinePreset): String {
-    val hours = (preset.loopMs / 3_600_000L).toInt()
-    return if (hours % 24 == 0) stringResource(R.string.routine_loop_hint_days, hours / 24)
-    else stringResource(R.string.routine_loop_hint_hours, hours)
 }

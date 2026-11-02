@@ -49,7 +49,6 @@ import com.guans.widgets.MainActivity
 import com.guans.widgets.R
 import com.guans.widgets.ui.Destination
 import com.guans.widgets.widgets.common.WidgetContainer
-import com.guans.widgets.data.RoutinePreset
 import com.guans.widgets.data.Routines
 import com.guans.widgets.data.formatStatus
 import com.guans.widgets.data.LOOP_TINT_RED
@@ -88,8 +87,9 @@ class RoutineWidgetReceiver : GlanceAppWidgetReceiver() {
 /** 点事项：记为刚刚完成。 */
 class MarkDoneAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val preset = parameters[RoutineKeys.ID]?.let(RoutinePreset::of) ?: return
-        RoutineTicker.tap(context, preset)
+        val id = parameters[RoutineKeys.ID] ?: return
+        val routine = Routines.all(context).firstOrNull { it.id == id } ?: return
+        RoutineTicker.tap(context, routine)
         RoutineTicker.pushAll(context)
     }
 }
@@ -161,7 +161,7 @@ private fun Content(state: Preferences) {
             )
         } else {
             LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
-                items(routines, itemId = { it.preset.ordinal.toLong() }) { routine ->
+                items(routines, itemId = { it.id.hashCode().toLong() }) { routine ->
                     val elapsed = routine.elapsed(now)
                     val tint = routine.loopProgress(now)?.let { Color(LOOP_TINT_RED).copy(alpha = loopTintAlpha(it)) }
                     // 倒计时条目底色随本轮进度逐渐变红；其他条目留同样的内边距，文字对齐
@@ -178,12 +178,12 @@ private fun Content(state: Preferences) {
                             .then(rowBackground)
                             .padding(horizontal = 6.dp, vertical = 3.dp)
                             .clickable(
-                            actionRunCallback<MarkDoneAction>(actionParametersOf(RoutineKeys.ID to routine.preset.name)),
+                            actionRunCallback<MarkDoneAction>(actionParametersOf(RoutineKeys.ID to routine.id)),
                         ),
                     ) {
                         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = context.getString(routine.preset.nameRes),
+                                text = routine.name,
                                 style = TextStyle(fontSize = 14.sp, color = GlanceTheme.colors.onSurface),
                                 maxLines = 1,
                                 modifier = GlanceModifier.defaultWeight(),
