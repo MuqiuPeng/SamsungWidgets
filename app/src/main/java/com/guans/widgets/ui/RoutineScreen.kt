@@ -318,18 +318,26 @@ private fun AddRoutineDialog(
     onName: (String) -> Unit,
     onPreset: (RoutinePreset) -> Unit,
 ) {
-    val presets = RoutinePreset.entries.filter { it !in existing }
     NameDialog(title = stringResource(R.string.add_routine), initial = "", onDismiss = onDismiss, onDone = onName) {
-        if (presets.isNotEmpty()) {
-            Text(
-                stringResource(R.string.routine_cat_loop),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                presets.forEach { preset ->
-                    AssistChip(onClick = { onPreset(preset) }, label = { Text(stringResource(preset.nameRes)) })
-                }
+        Text(
+            stringResource(R.string.routine_cat_loop),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        // 已添加的也留着，灰掉并注明，免得以为被删了
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RoutinePreset.entries.forEach { preset ->
+                val taken = preset in existing
+                AssistChip(
+                    onClick = { onPreset(preset) },
+                    enabled = !taken,
+                    label = {
+                        Text(
+                            if (taken) stringResource(preset.nameRes) + " · " + stringResource(R.string.pair_exists)
+                            else stringResource(preset.nameRes),
+                        )
+                    },
+                )
             }
         }
     }
