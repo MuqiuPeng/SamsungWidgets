@@ -1,5 +1,7 @@
 # Toolbox — 三星桌面小工具
 
+> English: [README.md](README.md)
+
 Android 主屏小组件集合（Kotlin + Jetpack Glance），在 One UI（三星）桌面上使用。
 一个 App 可以提供多个小工具：每个小工具放在 `widgets/<名字>/` 下，在 `AndroidManifest.xml` 里注册一个 receiver，
 并在 `ui/ToolboxApp.kt` 的 `WIDGETS` 里加一项，左侧抽屉就会出现它的设置页。
