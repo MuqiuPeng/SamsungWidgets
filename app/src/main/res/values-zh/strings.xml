@@ -3,7 +3,7 @@
 
     <!-- 汇率小工具 -->
     <string name="widget_exchange_rate_name">实时汇率</string>
-    <string name="widget_exchange_rate_desc">显示所选货币对的最新汇率，点击刷新</string>
+    <string name="widget_exchange_rate_desc">显示一个货币对的汇率和 30 天走势，点货币对切换</string>
     <string name="widget_title">汇率</string>
     <string name="status_updating">更新中…</string>
     <string name="status_offline">离线 · %1$s</string>
@@ -15,7 +15,7 @@
     <!-- 设置页 -->
     <string name="settings_title">汇率小工具</string>
     <string name="section_pairs">货币对</string>
-    <string name="pairs_hint">按此顺序显示在小工具上，涨跌为较前一日</string>
+    <string name="pairs_hint">每个小工具显示一个货币对，点小工具上的货币对按此顺序切换；涨跌为较前一日，点这里的货币对可看 30 天走势</string>
     <string name="pairs_empty">还没有货币对，点下方添加</string>
     <string name="add_pair">添加货币对</string>
     <string name="pairs_limit">最多 %1$d 个货币对</string>
@@ -236,5 +236,7 @@
     <string name="trend_change">区间涨跌</string>
     <string name="trend_loading">正在补齐缺失的日期…</string>
     <string name="trend_empty">还没有历史数据</string>
+    <string name="trend_widget_change">%1$d天 %2$s</string>
+    <string name="trend_widget_empty">正在补齐历史…</string>
     <string name="trend_failed">历史数据加载失败，请检查网络后重试</string>
 </resources>

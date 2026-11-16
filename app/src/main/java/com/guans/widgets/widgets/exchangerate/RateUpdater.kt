@@ -97,6 +97,11 @@ object RateUpdater {
                 it.remove(RateKeys.ERROR)
                 it[RateKeys.LOADING] = false
             }
+            // 小工具的走势图靠本地历史：缺的日期在这里补，补到了再重画一次
+            val filled = runCatching { RateHistory.backfill(context, codes + "USD") }
+                .onFailure { ErrorLog.record(context, "rate history", it) }
+                .getOrDefault(0)
+            if (filled > 0) pushAll(context, ids) {}
         } catch (e: Exception) {
             ErrorLog.record(context, "exchange refresh", e)
             pushAll(context, ids) {

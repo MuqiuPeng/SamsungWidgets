@@ -4,7 +4,7 @@
 
     <!-- 汇率小工具 -->
     <string name="widget_exchange_rate_name">Exchange rates</string>
-    <string name="widget_exchange_rate_desc">Latest rates for your currency pairs. Tap to refresh.</string>
+    <string name="widget_exchange_rate_desc">One currency pair with its 30-day trend. Tap the pair to switch.</string>
     <string name="widget_title">Rates</string>
     <string name="status_updating">Updating…</string>
     <string name="status_offline">Offline · %1$s</string>
@@ -16,7 +16,7 @@
     <!-- 设置页 -->
     <string name="settings_title">Exchange rate widget</string>
     <string name="section_pairs">Currency pairs</string>
-    <string name="pairs_hint">Shown on the widget in this order. Change is versus the previous day.</string>
+    <string name="pairs_hint">Each widget shows one pair; tap the pair on the widget to switch, in this order. Change is versus the previous day. Tap a pair here for its 30-day trend.</string>
     <string name="pairs_empty">No pairs yet. Add one below.</string>
     <string name="add_pair">Add pair</string>
     <string name="pairs_limit">Up to %1$d pairs</string>
@@ -239,5 +239,7 @@
     <string name="trend_change">Change</string>
     <string name="trend_loading">Filling in missing days…</string>
     <string name="trend_empty">No history yet</string>
+    <string name="trend_widget_change">%1$dd %2$s</string>
+    <string name="trend_widget_empty">Building history…</string>
     <string name="trend_failed">Couldn\'t load the history. Check the connection and try again.</string>
 </resources>
