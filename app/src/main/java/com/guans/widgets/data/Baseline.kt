@@ -45,6 +45,8 @@ object Baseline {
                 .putString("codes", keep.joinToString(","))
                 .putString("rates", rates.toString())
                 .apply()
+            // 同一份日快照也是 30 天走势的一个点
+            snapshot.date?.let { RateHistory.record(context, it, snapshot.rates, keep) }
             return snapshot.rates.filterKeys { it in keep }
         }
         val json = JSONObject(prefs.getString("rates", "{}").orEmpty())

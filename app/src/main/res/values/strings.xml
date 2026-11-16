@@ -233,4 +233,11 @@
     <string name="codex_paste_warning">This text gives full access to your ChatGPT account. Keep it private, and copy something else afterwards to clear the clipboard. Sign-in usually lasts about three months.</string>
     <string name="routine_rename">Rename</string>
     <string name="routine_name_hint">e.g. Change bedding</string>
+    <string name="trend_title">Last %1$d days, daily</string>
+    <string name="trend_high">High</string>
+    <string name="trend_low">Low</string>
+    <string name="trend_change">Change</string>
+    <string name="trend_loading">Filling in missing days…</string>
+    <string name="trend_empty">No history yet</string>
+    <string name="trend_failed">Couldn\'t load the history. Check the connection and try again.</string>
 </resources>

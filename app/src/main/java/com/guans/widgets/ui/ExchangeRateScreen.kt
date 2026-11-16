@@ -77,6 +77,7 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
     var refreshMinutes by remember { mutableIntStateOf(Settings.refreshMinutes(context)) }
     var cache by remember { mutableStateOf(RateUpdater.cached(context)) }
     var picking by remember { mutableStateOf(false) }
+    var trend by remember { mutableStateOf<String?>(null) }
 
     // 后台刷新写入缓存后，页面上的汇率跟着更新
     DisposableEffect(Unit) {
@@ -131,6 +132,7 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
                             }
                         },
                         onDelete = { pairs.removeAt(index); savePairs() },
+                        onOpen = { trend = pair },
                     )
                 }
             }
@@ -197,6 +199,10 @@ fun ExchangeRateScreen(contentPadding: PaddingValues, onAddToHome: () -> Unit) {
         }
     }
 
+    trend?.let { pair ->
+        RateTrendSheet(pair = pair, upIsRed = upIsRed, rise = RISE_RED, fall = FALL_GREEN, onDismiss = { trend = null })
+    }
+
     if (picking) {
         PairPicker(
             existing = pairs.toSet(),
@@ -222,10 +228,13 @@ private fun PairRow(
     handle: @Composable () -> Unit,
     onReverse: () -> Unit,
     onDelete: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     val (from, to) = pair.split('/')
     var menu by remember { mutableStateOf(false) }
     ListItem(
+        // 点一行看最近 30 天走势
+        modifier = Modifier.clickable(onClick = onOpen),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = handle,
         headlineContent = { Text("$from → $to") },

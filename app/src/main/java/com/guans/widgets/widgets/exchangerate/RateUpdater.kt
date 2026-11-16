@@ -22,6 +22,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.guans.widgets.data.Baseline
+import com.guans.widgets.data.RateHistory
 import com.guans.widgets.data.RateRepository
 import com.guans.widgets.data.Settings
 import java.util.concurrent.TimeUnit
@@ -73,6 +74,8 @@ object RateUpdater {
             val table = RateRepository.fetchUsdTable()
             val pairs = Settings.pairs(context)
             val codes = pairs.flatMap { it.split('/') }.toSet()
+            // 日快照（不是盘中数据）也记入 30 天走势
+            if (!table.live) table.date?.let { RateHistory.record(context, it, table.rates, codes + "USD") }
             // 基准取不到时只显示汇率，不影响主流程
             val baseline = runCatching { Baseline.forTable(context, table, codes) }.getOrNull()
             val encoded = encodeRates(pairs.map { pair ->
