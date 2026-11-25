@@ -2,7 +2,10 @@
 
 > English: [README.md](README.md)
 
-Android 主屏小组件集合（Kotlin + Jetpack Glance），在 One UI（三星）桌面上使用。
+Toolbox 是一组 Android 主屏小组件（Kotlin + Jetpack Glance），为 One UI（三星）桌面而做。
+目前三个：带对比前一日涨跌的实时汇率、记录某件事距上次多久的计时器，以及显示仓库最新
+release、上次 Actions 结果、最近推送和未关闭 issue 数的 GitHub 小组件。
+
 一个 App 可以提供多个小工具：每个小工具放在 `widgets/<名字>/` 下，在 `AndroidManifest.xml` 里注册一个 receiver，
 并在 `ui/ToolboxApp.kt` 的 `WIDGETS` 里加一项，左侧抽屉就会出现它的设置页。
 

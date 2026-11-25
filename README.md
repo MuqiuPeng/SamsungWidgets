@@ -2,11 +2,11 @@
 
 > 中文说明见 [README.zh-CN.md](README.zh-CN.md)
 
-A collection of Android home-screen widgets built with Kotlin and Jetpack
-Glance, made for the One UI (Samsung) launcher: live exchange rates with
-day-over-day movement, a timer counting how long since you last did something,
-and a GitHub widget showing a repository's latest release, last Actions run,
-most recent push and open issue count.
+Toolbox is a collection of Android home-screen widgets for the One UI (Samsung)
+launcher, built with Kotlin and Jetpack Glance. Three of them so far: live
+exchange rates with day-over-day movement, a timer counting how long since you
+last did something, and a GitHub widget showing a repository's latest release,
+last Actions run, most recent push and open issue count.
 
 One app, one drawer, a settings page per widget. The drawer has two sections:
 **Widgets** (settings for each one) and **Settings** (language, updates, about).
